@@ -11,6 +11,7 @@
   glib,
   gjs,
   libadwaita,
+  libglycin,
   dart-sass,
   socat,
 }:
@@ -116,6 +117,7 @@ buildNpmPackage (finalAttrs: {
     glib
     gjs
     libadwaita
+    libglycin
     inputs'.astal.packages.astal4
     inputs'.astal.packages.apps
     inputs'.astal.packages.auth
