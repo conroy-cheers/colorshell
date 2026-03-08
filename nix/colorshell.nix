@@ -4,6 +4,8 @@
   stdenv,
   stdenvNoCC,
   moreutils,
+  pnpmConfigHook,
+  fetchPnpmDeps,
   pnpm_10,
   buildNpmPackage,
   wrapGAppsHook4,
@@ -13,7 +15,8 @@
   libadwaita,
   dart-sass,
   socat,
-  libglycin,
+  fcitx5,
+  libglycin-gtk4,
   glycin-loaders,
 }:
 let
@@ -88,9 +91,9 @@ buildNpmPackage (finalAttrs: {
   src = colorshellSrc;
   sourceRoot = "${finalAttrs.src.name}";
 
-  npmConfigHook = pnpm_10.configHook;
+  npmConfigHook = pnpmConfigHook;
   npmDeps = finalAttrs.pnpmDeps;
-  pnpmDeps = pnpm_10.fetchDeps {
+  pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs)
       pname
       version
@@ -108,6 +111,7 @@ buildNpmPackage (finalAttrs: {
   };
 
   nativeBuildInputs = [
+    pnpm_10
     wrapGAppsHook4
     gobject-introspection
     inputs'.ags.packages.default
@@ -118,7 +122,7 @@ buildNpmPackage (finalAttrs: {
     glib
     gjs
     libadwaita
-    libglycin
+    libglycin-gtk4
     glycin-loaders
     inputs'.astal.packages.astal4
     inputs'.astal.packages.apps
@@ -147,7 +151,7 @@ buildNpmPackage (finalAttrs: {
       --define "GRESOURCES_FILE='${colorshellResources}'"
 
     # add socket-communication support on executable
-    { 
+    {
       head -n1 $outPath
       sed '1{/^#!.*$/d}' ${../scripts/socket.sh}
       cat "$outPath" | sed '/^#!.*$/d'
@@ -173,6 +177,7 @@ buildNpmPackage (finalAttrs: {
           dart-sass
           glib
           socat
+          fcitx5
         ]
       }
     )
