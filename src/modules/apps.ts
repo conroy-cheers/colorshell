@@ -3,6 +3,7 @@ import { execAsync } from "ags/process";
 
 import AstalApps from "gi://AstalApps";
 import AstalHyprland from "gi://AstalHyprland";
+import GLib from "gi://GLib?version=2.0";
 
 
 export const uwsmIsActive: boolean = await execAsync(
@@ -25,18 +26,54 @@ export function getAstalApps(): AstalApps.Apps {
     return astalApps;
 }
 
+function normalizeDesktopEntry(entry: string): string {
+    return entry.trim().replace(/\.desktop$/i, "");
+}
+
+function resolveDesktopEntryPath(entry: string): string|undefined {
+    const desktopEntry = entry.trim();
+    const desktopFile = desktopEntry.endsWith(".desktop")
+        ? desktopEntry
+        : `${desktopEntry}.desktop`;
+
+    if(GLib.path_is_absolute(desktopFile) && GLib.file_test(desktopFile, GLib.FileTest.EXISTS))
+        return desktopFile;
+
+    const dataDirs = [GLib.get_user_data_dir(), ...GLib.get_system_data_dirs()];
+
+    for(const dataDir of dataDirs) {
+        const candidate = GLib.build_filenamev([dataDir, "applications", desktopFile]);
+        if(GLib.file_test(candidate, GLib.FileTest.EXISTS))
+            return candidate;
+    }
+
+    return undefined;
+}
+
+function desktopLaunchCommand(entry: string): string {
+    const desktopEntry = entry.trim();
+    const desktopPath = resolveDesktopEntryPath(desktopEntry);
+    if(uwsmIsActive)
+        return `uwsm-app -- ${GLib.shell_quote(desktopPath ?? desktopEntry)}`;
+
+    return `gtk4-launch ${GLib.shell_quote(normalizeDesktopEntry(desktopEntry))}`;
+}
+
 /** execute apps and commands using Hyprland's exec dispatcher.
     supports desktop entries and usage of uwsm if it's active */
 export function execApp(app: AstalApps.Application|string, dispatchExecArgs?: string) {
-    const executable = (typeof app === "string") ? app 
+    const executable = (typeof app === "string") ? app
+        : dispatchExecArgs === undefined ? desktopLaunchCommand(app.entry)
         : app.executable.replace(/%[fFcuUik]/g, "");
 
-    AstalHyprland.get_default().dispatch("exec", 
+    const command = typeof app === "string" && app.trim().endsWith(".desktop")
+        ? desktopLaunchCommand(app)
+        : executable;
+
+    AstalHyprland.get_default().dispatch("exec",
         `${dispatchExecArgs ? `${dispatchExecArgs} ` : ""}${
-            uwsmIsActive ? "uwsm-app -- " : executable.endsWith(".desktop") ?
-                "gtk-launch "
-            : ""
-        }${executable}`
+            command
+        }`
     );
 }
 

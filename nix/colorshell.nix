@@ -11,6 +11,7 @@
   wrapGAppsHook4,
   gobject-introspection,
   glib,
+  gtk4,
   gjs,
   libadwaita,
   dart-sass,
@@ -181,6 +182,7 @@ buildNpmPackage (finalAttrs: {
           # runtime executables
           dart-sass
           glib
+          gtk4.dev
           socat
           fcitx5
         ]
