@@ -116,6 +116,10 @@ export class NightLight extends GObject.Object {
                 execAsync("hyprctl hyprsunset temperature"),
                 execAsync("hyprctl hyprsunset gamma")
             ]);
+            const syncError = [t, g].find(output => /hyprsunset\.sock|Couldn't connect/i.test(output));
+
+            if(syncError)
+                throw new Error(syncError.trim());
 
             if(t.trim() !== "" && t.trim().length <= 5) {
                 const val = Number.parseInt(t.trim());
