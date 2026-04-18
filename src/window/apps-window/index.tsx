@@ -86,7 +86,9 @@ function AppWidget(app: AstalApps.Application): Gtk.Widget {
           } onClicked={(self) => {
               execApp(app);
               (self.get_root() as Astal.Window)?.close();
-          }} onDestroy={() => dispose()}>
+          }} onDestroy={() => {
+              dispose();
+          }}>
             <Gtk.Box orientation={Gtk.Orientation.VERTICAL} valign={Gtk.Align.CENTER}
               hexpand={false} vexpand={false}>
 

@@ -94,7 +94,9 @@ export function PopupWindow(props: PopupWindowProps): GObject.Object {
               <BackgroundWindow monitor={props.monitor ?? 0}
                 layer={props.layer} css={props.cssBackgroundWindow} 
                 keymode={Astal.Keymode.NONE} attach={self}
-                onCloseRequest={() => dispose()}
+                onCloseRequest={() => {
+                    dispose();
+                }}
               />
           );
 

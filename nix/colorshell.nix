@@ -9,13 +9,37 @@
   pnpm_10,
   buildNpmPackage,
   wrapGAppsHook4,
+  bash,
+  bluez,
+  brightnessctl,
+  cliphist,
+  coreutils,
   gobject-introspection,
   glib,
+  grim,
   gtk4,
   gjs,
+  hypridle,
+  hyprland,
+  hyprlock,
+  hyprpaper,
+  hyprpicker,
+  hyprsunset,
   libadwaita,
+  libcanberra,
   dart-sass,
+  networkmanager,
+  procps,
+  psmisc,
+  pywal,
   socat,
+  slurp,
+  systemd,
+  util-linux,
+  wf-recorder,
+  wl-clipboard,
+  xdg-utils,
+  zenity,
   fcitx5,
   libglycin-gtk4,
   glycin-loaders,
@@ -30,8 +54,11 @@ let
     root = ../.;
     fileset = lib.fileset.difference ../. (
       lib.fileset.unions [
+        (lib.fileset.maybeMissing ../build)
         ../flake.nix
         ../flake.lock
+        (lib.fileset.maybeMissing ../node_modules)
+        (lib.fileset.maybeMissing ../result)
         ./.
       ]
     );
@@ -181,9 +208,33 @@ buildNpmPackage (finalAttrs: {
         lib.makeBinPath [
           # runtime executables
           dart-sass
+          bash
+          bluez
+          brightnessctl
+          cliphist
+          coreutils
           glib
+          grim
           gtk4.dev
+          hypridle
+          hyprland
+          hyprlock
+          hyprpaper
+          hyprpicker
+          hyprsunset
+          libcanberra
+          networkmanager
+          procps
+          psmisc
+          pywal
           socat
+          slurp
+          systemd
+          util-linux
+          wf-recorder
+          wl-clipboard
+          xdg-utils
+          zenity
           fcitx5
         ]
       }

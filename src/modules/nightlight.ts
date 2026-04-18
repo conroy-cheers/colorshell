@@ -17,6 +17,9 @@ export class NightLight extends GObject.Object {
     public static readonly maxGamma = 100;
 
     #watchInterval?: GLib.Source;
+    #syncInFlight: boolean = false;
+    #restartInFlight: boolean = false;
+    #lastSyncError: string|null = null;
     #temperature: number = NightLight.identityTemperature;
     #gamma: number = NightLight.maxGamma;
     #identity: boolean = false;
@@ -55,6 +58,7 @@ export class NightLight extends GObject.Object {
         setTimeout(() => {
             this.restartDaemon().then(() => {
                 this.loadData();
+                void this.syncData();
                 this.#watchInterval = setInterval(() => this.syncData(), 10000);
             }).catch(e => {
                 console.error("Night Light: Failed to initialize daemon(is it installed?):", e);
@@ -101,8 +105,18 @@ export class NightLight extends GObject.Object {
         this.#proc = Gio.Subprocess.new(["hyprsunset"], Gio.SubprocessFlags.STDOUT_SILENCE);
     }
 
-    private syncData(): void {
-        execAsync("hyprctl hyprsunset temperature").then(t => {
+    private async syncData(): Promise<void> {
+        if(this.#syncInFlight)
+            return;
+
+        this.#syncInFlight = true;
+
+        try {
+            const [t, g] = await Promise.all([
+                execAsync("hyprctl hyprsunset temperature"),
+                execAsync("hyprctl hyprsunset gamma")
+            ]);
+
             if(t.trim() !== "" && t.trim().length <= 5) {
                 const val = Number.parseInt(t.trim());
 
@@ -112,10 +126,7 @@ export class NightLight extends GObject.Object {
                     this.notify("temperature");
                 }
             }
-        }).catch((r: Error) => console.error(`Night Light: Couldn't sync temperature. Stderr: ${
-            r.message}\n${r.stack}`));
 
-        execAsync("hyprctl hyprsunset gamma").then(g => {
             if(g.trim() !== "" && g.trim().length <= 5) {
                 const val = Number.parseInt(g.trim());
 
@@ -125,8 +136,12 @@ export class NightLight extends GObject.Object {
                     this.notify("gamma");
                 }
             }
-        }).catch((r: Error) => console.error(`Night Light: Couldn't sync. Stderr: ${
-            r.message}\n${r.stack}`));
+            this.#lastSyncError = null;
+        } catch(error) {
+            await this.handleSyncFailure(error as Error);
+        } finally {
+            this.#syncInFlight = false;
+        }
     }
 
     private setTemperature(value: number): void {
@@ -226,5 +241,44 @@ export class NightLight extends GObject.Object {
 
         this.#identity = identity;
         this.notify("identity");
+    }
+
+    private async handleSyncFailure(error: Error): Promise<void> {
+        const errorKey = error.message.trim();
+
+        if(this.#lastSyncError !== errorKey) {
+            this.#lastSyncError = errorKey;
+            console.error(`Night Light: Couldn't sync state. Stderr: ${error.message}\n${error.stack}`);
+        }
+
+        if(!/hyprsunset\.sock|Couldn't connect/i.test(error.message))
+            return;
+
+        await this.restartDaemonAndRestore();
+    }
+
+    private async restartDaemonAndRestore(): Promise<void> {
+        if(this.#restartInFlight)
+            return;
+
+        this.#restartInFlight = true;
+
+        try {
+            await this.restartDaemon();
+
+            if(this.#identity) {
+                await this.dispatchAsync("identity");
+            } else {
+                await this.dispatchAsync("temperature", this.#temperature);
+                await this.dispatchAsync("gamma", this.#gamma);
+            }
+
+            this.#lastSyncError = null;
+        } catch(error) {
+            const e = error as Error;
+            console.error(`Night Light: Failed to recover daemon. Stderr: ${e.message}\n${e.stack}`);
+        } finally {
+            this.#restartInFlight = false;
+        }
     }
 }

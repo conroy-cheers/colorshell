@@ -61,8 +61,7 @@ export class Pages extends Gtk.Box {
         }
 
         if(this.#page?.id !== newPage.id) {
-            this.close();
-            this.open(newPage, onToggled);
+            this.close(() => this.open(newPage, onToggled));
         }
     }
 

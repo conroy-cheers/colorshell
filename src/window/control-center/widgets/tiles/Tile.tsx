@@ -1,7 +1,7 @@
 import { Gtk } from "ags/gtk4";
 import { createBinding } from "ags";
 import { omitObjectKeys, variableToBoolean } from "../../../../modules/utils";
-import { property, register, signal } from "ags/gobject";
+import { gtype, property, register, signal } from "ags/gobject";
 
 import Pango from "gi://Pango?version=1.0";
 
@@ -38,14 +38,14 @@ export class Tile extends Gtk.Box {
         this.state ? this.disable() : this.enable();
     }
 
-    @property(String)
-    public icon: string;
+    @property(gtype<string|null>(String))
+    public icon: string|null = null;
 
-    @property(String)
-    public title: string;
+    @property(gtype<string|null>(String))
+    public title: string|null = null;
 
-    @property(String)
-    public description: string = "";
+    @property(gtype<string|null>(String))
+    public description: string|null = "";
 
     @property(Boolean)
     public toggleOnClick: boolean = false;
@@ -125,7 +125,7 @@ export class Tile extends Gtk.Box {
 
         this.prepend(
             <Gtk.Box hexpand={false} vexpand class={"icon"}>
-                <Gtk.Image iconName={createBinding(this, "icon")} halign={Gtk.Align.CENTER} />
+                <Gtk.Image iconName={createBinding(this, "icon").as(icon => icon ?? "image-missing")} halign={Gtk.Align.CENTER} />
                 <Gtk.GestureClick onReleased={() => {
                     this.state ? this.disable() : this.enable();
                 }} />
@@ -136,10 +136,10 @@ export class Tile extends Gtk.Box {
             <Gtk.Box class={"content"} orientation={Gtk.Orientation.VERTICAL} vexpand
               valign={Gtk.Align.CENTER} hexpand>
 
-                <Gtk.Label class={"title"} label={createBinding(this, "title")} 
+                <Gtk.Label class={"title"} label={createBinding(this, "title").as(title => title ?? "")} 
                   xalign={0} ellipsize={Pango.EllipsizeMode.END} hexpand={false} 
                   maxWidthChars={10} />
-                <Gtk.Label class={"description"} label={createBinding(this, "description")} 
+                <Gtk.Label class={"description"} label={createBinding(this, "description").as(desc => desc ?? "")} 
                   xalign={0} ellipsize={Pango.EllipsizeMode.END} visible={
                       variableToBoolean(createBinding(this, "description"))
                   } maxWidthChars={12} hexpand={false}

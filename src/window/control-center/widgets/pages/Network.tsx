@@ -13,14 +13,21 @@ import NM from "gi://NM";
 import AstalNetwork from "gi://AstalNetwork";
 
 
+const network = AstalNetwork.get_default();
+const wifi = createBinding(network, "wifi");
+const primary = createBinding(network, "primary");
+const devices = createBinding(network.client, "devices").as(devs =>
+    (devs ?? []).filter(dev => dev != null && dev.interface !== "lo" && dev.real)
+);
+
 export const PageNetwork = createRoot((dispose) => <Page
     id={"network"}
     title={tr("control_center.pages.network.title")}
-    headerButtons={createBinding(AstalNetwork.get_default(), "primary").as(primary =>
-        primary === AstalNetwork.Primary.WIFI ? [{
+    headerButtons={createComputed([primary, wifi], (primary, wifi) =>
+        primary === AstalNetwork.Primary.WIFI && wifi ? [{
             icon: "arrow-circular-top-right-symbolic",
             tooltipText: "Re-scan networks",
-            actionClicked: () => AstalNetwork.get_default().wifi.scan()
+            actionClicked: () => wifi.scan()
         }] : []
     )}
     bottomButtons={[{
@@ -30,15 +37,16 @@ export const PageNetwork = createRoot((dispose) => <Page
             execApp("nm-connection-editor", "[animationstyle gnomed]");
         }
     }]}
-    actionClosed={() => dispose()}
+    actionClosed={() => {
+        Promise.resolve(dispose()).catch(console.error);
+    }}
     content={() => [
         <Gtk.Box class={"devices"} hexpand orientation={Gtk.Orientation.VERTICAL}
-          visible={variableToBoolean(createBinding(AstalNetwork.get_default().client, "devices"))}
+          visible={devices.as(devs => devs.length > 0)}
           spacing={4}>
 
             <Gtk.Label label={tr("devices")} xalign={0} class={"sub-header"} />
-            <For each={createBinding(AstalNetwork.get_default().client, "devices").as(devs => 
-              devs.filter(dev => dev.interface !== "lo" && dev.real /* filter local device */))}>
+            <For each={devices}>
 
                 {(device: NM.Device) => <PageButton title={createBinding(device, "interface").as(iface =>
                     iface ?? tr("control_center.pages.network.interface"))} class={"device"}
@@ -56,19 +64,22 @@ export const PageNetwork = createRoot((dispose) => <Page
                 />}
             </For>
         </Gtk.Box>,
-        <With value={createBinding(AstalNetwork.get_default(), "primary").as(primary => 
-          primary === AstalNetwork.Primary.WIFI)}>
-
-            {(isWifi: boolean) => isWifi && <Gtk.Box class={"wireless-aps"} hexpand={true} 
-              orientation={Gtk.Orientation.VERTICAL}>
+        <With value={createComputed([primary, wifi], (primary, wifi) =>
+            primary === AstalNetwork.Primary.WIFI ? wifi : null
+        )}>
+            {(wifiDevice: AstalNetwork.Wifi | null) => wifiDevice && <Gtk.Box
+              class={"wireless-aps"} hexpand={true} orientation={Gtk.Orientation.VERTICAL}>
 
                 <Gtk.Label class={"sub-header"} label={"Wi-Fi"} />
-                <For each={createBinding(AstalNetwork.get_default().wifi, "accessPoints")}>
+                <For each={createBinding(wifiDevice, "accessPoints").as(aps =>
+                    (aps ?? []).filter((ap): ap is AstalNetwork.AccessPoint => ap != null)
+                )}>
                     {(ap: AstalNetwork.AccessPoint) => <PageButton class={
-                        createBinding(AstalNetwork.get_default().wifi, "activeAccessPoint").as(activeAP =>
-                            activeAP.ssid === ap.ssid ? "active" : "")
+                        createBinding(wifiDevice, "activeAccessPoint").as(activeAP =>
+                            activeAP?.ssid === ap.ssid ? "active" : "")
                       } title={createBinding(ap, "ssid").as(ssid => ssid ?? "No SSID")}
-                      icon={createBinding(ap, "iconName")} endWidget={<Gtk.Image iconName={
+                      icon={createBinding(ap, "iconName").as(icon => icon ?? "network-wireless-symbolic")}
+                      endWidget={<Gtk.Image iconName={
                           createBinding(ap, "flags").as(flags => 
                             // @ts-ignore
                             flags & NM["80211ApFlags"].PRIVACY ?
@@ -77,15 +88,15 @@ export const PageNetwork = createRoot((dispose) => <Page
                           css={"font-size: 18px;"}
                       />} extraButtons={[
                           <Gtk.Button iconName={"window-close-symbolic"} visible={
-                              createBinding(AstalNetwork.get_default().wifi, "activeAccessPoint").as(activeAp =>
-                                  activeAp.ssid === ap.ssid)
+                              createBinding(wifiDevice, "activeAccessPoint").as(activeAp =>
+                                  activeAp?.ssid === ap.ssid)
                           } css={"font-size: 18px;"} onClicked={() => {
-                                const active = AstalNetwork.get_default().wifi.activeAccessPoint;
+                                const active = wifiDevice.activeAccessPoint;
 
                                 if(active?.ssid === ap.ssid) {
-                                    AstalNetwork.get_default().wifi.deactivate_connection((_, res) => {
+                                    wifiDevice.deactivate_connection((_, res) => {
                                         try { 
-                                            AstalNetwork.get_default().wifi.deactivate_connection_finish(res);
+                                            wifiDevice.deactivate_connection_finish(res);
                                         } catch(e: any) {
                                             e = e as Error;
 
@@ -97,9 +108,10 @@ export const PageNetwork = createRoot((dispose) => <Page
                                     })
                                 }
                             }}/>
-                      ]} actionClicked={() => {
+                          ]} actionClicked={() => {
+                          const ssid = ap.ssid ?? "No SSID";
                           const uuid = NM.utils_uuid_generate();
-                          const ssidBytes = GLib.Bytes.new(encoder.encode(ap.ssid));
+                          const ssidBytes = GLib.Bytes.new(encoder.encode(ssid));
 
                           const connection = NM.SimpleConnection.new();
                           const connSetting = NM.SettingConnection.new();

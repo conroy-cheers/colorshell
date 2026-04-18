@@ -11,7 +11,37 @@ import Gio from "gi://Gio?version=2.0";
 
 
 const userFace: Gio.File = Gio.File.new_for_path(`${GLib.get_home_dir()}/.face`);
-const uptime: Accessor<string> = createPoll("Just turned on", 1000, "uptime -p"); 
+const uptime: Accessor<string> = createPoll("Just turned on", 60000, readUptime);
+
+function readUptime(): string {
+    try {
+        const [ok, contents] = GLib.file_get_contents("/proc/uptime");
+
+        if(!ok)
+            return "Just turned on";
+
+        const decoder = new TextDecoder();
+        const uptimeText = decoder.decode(contents);
+        const seconds = Math.max(0, Math.floor(Number.parseFloat(uptimeText.split(" ")[0] ?? "0")));
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const parts: Array<string> = [];
+
+        if(days > 0)
+            parts.push(`${days} day${days === 1 ? "" : "s"}`);
+
+        if(hours > 0)
+            parts.push(`${hours} hour${hours === 1 ? "" : "s"}`);
+
+        if(minutes > 0 || parts.length < 1)
+            parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`);
+
+        return parts.join(", ");
+    } catch(_) {
+        return "Just turned on";
+    }
+}
 
 function LockButton(): Gtk.Button {
     return <Gtk.Button iconName={"system-lock-screen-symbolic"} 
@@ -77,7 +107,7 @@ export const QuickActions = () =>
                 <Gtk.Box>
                     <Gtk.Image iconName={"hourglass-symbolic"} />
                     <Gtk.Label class={"uptime"} xalign={0} tooltipText={"Up time"}
-                      label={uptime.as(str => str.replace(/^up /, ""))} />
+                      label={uptime} />
                 </Gtk.Box>
             </Gtk.Box>
         </Gtk.Box>

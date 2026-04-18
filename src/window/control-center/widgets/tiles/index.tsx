@@ -22,7 +22,9 @@ export function Tiles(): Gtk.Widget {
         getScope().onCleanup(() => TilesPages = undefined);
 
         return <Gtk.Box class={"tiles-container"} orientation={Gtk.Orientation.VERTICAL}
-          onDestroy={() => dispose()}>
+          onUnmap={() => {
+              Promise.resolve(dispose()).catch(console.error);
+          }}>
 
             <Gtk.FlowBox orientation={Gtk.Orientation.HORIZONTAL} rowSpacing={6}
               columnSpacing={6} minChildrenPerLine={2} activateOnSingleClick

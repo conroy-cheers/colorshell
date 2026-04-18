@@ -39,7 +39,7 @@ export const BluetoothPage = createRoot((dispose) => <Page
         }
     }]: [])}
     actionClosed={() => {
-        dispose();
+        Promise.resolve(dispose()).catch(console.error);
 
         Bluetooth.getDefault().adapter?.discovering && 
             Bluetooth.getDefault().adapter?.stop_discovery();

@@ -163,8 +163,9 @@ export class Windows<T extends string = string> extends GObject.Object {
                 return createRoot(() => {
                     const scope = getScope();
                     const instance = create(mon.id, scope) as Astal.Window;
-                    const connection: number = instance.connect("close-request", () => 
-                        scope.dispose());
+                    const connection: number = instance.connect("close-request", () => {
+                        scope.dispose();
+                    });
 
                     scope.onCleanup(() => 
                         GObject.signal_handler_is_connected(instance, connection) &&
@@ -185,17 +186,19 @@ export class Windows<T extends string = string> extends GObject.Object {
      */
     public static forFocusedMonitor(create: (mon: number, scope: ReturnType<typeof getScope>) => GObject.Object|Astal.Window): (() => Astal.Window) {
         return () => {
-            const focusedMonitor = this.getFocusedMonitorId();
+            const focusedMonitor = this.getPreferredMonitorId();
 
             if(focusedMonitor == null) 
                 throw new Error("Couldn't create window for focused monitor", { 
-                    cause: `No focused monitor found (${typeof focusedMonitor})` 
+                    cause: `No monitor found (${typeof focusedMonitor})` 
                 });
 
             return createRoot((dispose) => {
                 const scope = getScope();
                 const instance = create(focusedMonitor, scope) as Astal.Window;
-                const connection = instance.connect("close-request", () => dispose());
+                const connection = instance.connect("close-request", () => {
+                    dispose();
+                });
 
                 scope.onCleanup(() => 
                     GObject.signal_handler_is_connected(instance, connection) &&
@@ -227,6 +230,11 @@ export class Windows<T extends string = string> extends GObject.Object {
     
     public static getFocusedMonitorId(): (number|null) {
         return AstalHyprland.get_default().get_monitors().find(mon => mon.focused)?.id ?? null;
+    }
+
+    public static getPreferredMonitorId(): number|null {
+        const monitors = AstalHyprland.get_default().get_monitors();
+        return monitors.find(mon => mon.focused)?.id ?? monitors[0]?.id ?? null;
     }
 
     public isOpen(name: T): boolean {

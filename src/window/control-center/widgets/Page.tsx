@@ -97,8 +97,10 @@ export class Page extends GObject.Object {
     public create(): Gtk.Box {
         return createRoot((dispose) => 
             <Gtk.Box hexpand class={`page container ${this.#id ?? ""}`} cssName={"page"} name={"page"}
-              orientation={Gtk.Orientation.VERTICAL} 
-              onDestroy={() => dispose()}>
+              orientation={Gtk.Orientation.VERTICAL}
+              onUnmap={() => {
+                  Promise.resolve(dispose()).catch(console.error);
+              }}>
 
                 <Gtk.Box class={"header"} orientation={Gtk.Orientation.VERTICAL}>
                     <Gtk.Box class={"top"} hexpand>

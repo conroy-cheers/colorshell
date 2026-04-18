@@ -3,8 +3,7 @@ import { execAsync } from "ags/process";
 import { PageNetwork } from "../pages/Network";
 import { tr } from "../../../../i18n/intl";
 import { TilesPages } from "../tiles";
-import { Accessor, createBinding, createComputed } from "ags";
-import { secureBaseBinding } from "../../../../modules/utils";
+import { createBinding, createComputed } from "ags";
 
 import AstalNetwork from "gi://AstalNetwork";
 import { Notifications } from "../../../../modules/notifications";
@@ -12,49 +11,17 @@ import { Notifications } from "../../../../modules/notifications";
 
 const { WIFI, WIRED } = AstalNetwork.Primary,
     { CONNECTED, CONNECTING, DISCONNECTED } = AstalNetwork.Internet;
-
-const wiredInternet = secureBaseBinding<AstalNetwork.Wired>(
-    createBinding(AstalNetwork.get_default(), "wired"),
-    "internet",
-    AstalNetwork.Internet.DISCONNECTED
-) as Accessor<AstalNetwork.Internet>;
-
-const wifiInternet = secureBaseBinding<AstalNetwork.Wifi>(
-    createBinding(AstalNetwork.get_default(), "wifi"),
-    "internet",
-    AstalNetwork.Internet.DISCONNECTED
-) as Accessor<AstalNetwork.Internet>;
-
-const wifiSSID = secureBaseBinding<AstalNetwork.Wifi>(
-    createBinding(AstalNetwork.get_default(), "wifi"),
-    "ssid",
-    "Unknown"
-) as Accessor<string>;
-
-const wifiIcon = secureBaseBinding<AstalNetwork.Wifi>(
-    createBinding(AstalNetwork.get_default(), "wifi"),
-    "iconName",
-    "network-wireless-symbolic"
-);
-
-const wiredIcon = secureBaseBinding<AstalNetwork.Wired>(
-    createBinding(AstalNetwork.get_default(), "wired"),
-    "iconName",
-    "network-wired-symbolic"
-);
-
-const primary = createBinding(AstalNetwork.get_default(), "primary");
+const network = AstalNetwork.get_default();
+const primary = createBinding(network, "primary");
+const wifi = createBinding(network, "wifi");
+const wired = createBinding(network, "wired");
 
 export const TileNetwork = () => 
-    <Tile hasArrow title={createComputed([
-          primary, 
-          wifiInternet, 
-          wifiSSID
-      ], (primary, wiInternet, wiSSID) => {
+    <Tile hasArrow title={createComputed([primary, wifi], (primary, wifi) => {
         switch(primary) {
             case WIFI:
-                if(wiInternet === CONNECTED)
-                    return wiSSID;
+                if(wifi?.internet === CONNECTED)
+                    return wifi.ssid ?? tr("control_center.tiles.network.wireless");
 
                 return tr("control_center.tiles.network.wireless");
 
@@ -65,62 +32,46 @@ export const TileNetwork = () =>
         return tr("control_center.tiles.network.network");
       })}
       onClicked={() => TilesPages?.toggle(PageNetwork)}
-      icon={createComputed([
-          primary,
-          wifiIcon,
-          wiredIcon
-      ], (primary, wifiIcon, wiredIcon) => {
+      icon={createComputed([primary, wifi, wired], (primary, wifi, wired) => {
           switch(primary) {
               case WIFI:
-                  return wifiIcon;
+                  return wifi?.iconName ?? "network-wireless-symbolic";
 
               case WIRED:
-                  return wiredIcon;
+                  return wired?.iconName ?? "network-wired-symbolic";
           }
 
           return "network-wired-no-route-symbolic";
       })}
-      state={createComputed([
-          primary,
-          secureBaseBinding<AstalNetwork.Wifi>(
-              createBinding(AstalNetwork.get_default(), "wifi"),
-              "enabled",
-              false
-          ),
-          wiredInternet.as(internet => internet === CONNECTED || internet === CONNECTING)
-      ], (primary, wifiEnabled, wiredEnabled) => {
+      state={createComputed([primary, wifi, wired], (primary, wifi, wired) => {
           switch(primary) {
               case WIFI:
-                  return wifiEnabled;
+                  return wifi?.enabled ?? false;
 
               case WIRED:
-                  return wiredEnabled;
+                  return wired?.internet === CONNECTED || wired?.internet === CONNECTING;
           }
 
           return false;
       })}
-      description={createComputed([
-          primary,
-          wifiInternet,
-          wiredInternet
-      ], (primary, wifiInternet, wiredInternet) => {
+      description={createComputed([primary, wifi, wired], (primary, wifi, wired) => {
           switch(primary) {
               case WIFI:
-                  return internetToTranslatedString(wifiInternet);
+                  return internetToTranslatedString(wifi?.internet ?? DISCONNECTED);
 
               case WIRED:
-                  return internetToTranslatedString(wiredInternet);
+                  return internetToTranslatedString(wired?.internet ?? DISCONNECTED);
           }
 
           return tr("disconnected");        
       })}
       onToggled={(self, state) => {
-          const wifi = AstalNetwork.get_default().wifi,
-              wired = AstalNetwork.get_default().wired;
+          const wifi = network.wifi,
+              wired = network.wired;
 
-          switch(AstalNetwork.get_default().primary) {
+          switch(network.primary) {
               case WIFI:
-                  wifi.set_enabled(state);
+                  wifi?.set_enabled(state);
                   return;
 
               case WIRED:

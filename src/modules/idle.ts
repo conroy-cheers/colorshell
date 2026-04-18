@@ -2,9 +2,9 @@ import { register } from "ags/gobject";
 import Gio from "gi://Gio?version=2.0";
 import GObject from "gi://GObject?version=2.0";
 import { createSubscription, encoder, getPID, isInstalled, killProc } from "./utils";
-import { Shell } from "../app";
 import { generalConfig } from "../config";
 import { Notifications } from "./notifications";
+import GLib from "gi://GLib?version=2.0";
 
 
 /** wrapper module for hypridle */
@@ -13,7 +13,7 @@ export class Idle extends GObject.Object {
     private static instance: Idle;
 
     #daemon: Gio.Subprocess|null = null;
-    #file: Gio.File = Gio.File.new_for_path(`${Shell.runtimeConfigDir.peek_path()}/hypridle.conf`);
+    #file: Gio.File = Gio.File.new_for_path(`${GLib.get_user_config_dir()}/hypr/hypridle.conf`);
     #generalKeys: Array<keyof Idle.GeneralConfig> = [
         "lock_cmd",
         "unlock_cmd",
@@ -39,6 +39,10 @@ export class Idle extends GObject.Object {
         const pid = getPID("hypridle");
         if(pid !== undefined)
             killProc(pid);
+
+        try {
+            this.#file.get_parent()?.make_directory_with_parents(null);
+        } catch(_) {}
 
         this.write().catch(console.error).then(() => {
             this.restartDaemon();
@@ -67,7 +71,7 @@ export class Idle extends GObject.Object {
             this.quit();
 
         this.#daemon = Gio.Subprocess.new(
-            ["hypridle", "--config", this.#file.peek_path()!],
+            ["hypridle"],
             Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_PIPE
         );
     }

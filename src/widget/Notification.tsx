@@ -267,7 +267,7 @@ export class Notification extends Gtk.Box {
                       valign={Gtk.Align.START}
                     />
                     <Gtk.Label xalign={0} class={"body"} visible={createBinding(this, "body").as(s => s !== null)}
-                      label={createBinding(this, "body").as(s => s ?? "")} useMarkup
+                      label={createBinding(this, "body").as(s => s ?? "")}
                       valign={Gtk.Align.START} wrapMode={Pango.WrapMode.WORD_CHAR} wrap
                     />
                 </Gtk.Box>
