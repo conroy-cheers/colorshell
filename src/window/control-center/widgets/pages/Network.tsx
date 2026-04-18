@@ -6,7 +6,7 @@ import { execApp } from "../../../../modules/apps";
 import { Notifications } from "../../../../modules/notifications";
 import { AskPopup, AskPopupProps } from "../../../../widget/AskPopup";
 import { encoder, variableToBoolean } from "../../../../modules/utils";
-import { createBinding, createRoot, For, With } from "ags";
+import { createBinding, createComputed, createRoot, For, With } from "ags";
 
 import GLib from "gi://GLib?version=2.0";
 import NM from "gi://NM";
