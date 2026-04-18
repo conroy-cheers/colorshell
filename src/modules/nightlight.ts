@@ -81,11 +81,14 @@ export class NightLight extends GObject.Object {
         if(!this.#proc)
             return false;
 
+        const proc = this.#proc;
+        this.#proc = null;
+
         return new Promise((resolve, reject) => {
-            this.#proc!.wait_async(null, (_, res) => {
+            proc.wait_async(null, (_, res) => {
                 let result!: boolean;
                 try {
-                    result = this.#proc!.wait_finish(res);
+                    result = proc.wait_finish(res);
                 } catch(e) {
                     reject(e);
                     return;
@@ -94,7 +97,7 @@ export class NightLight extends GObject.Object {
                 resolve(result);
             });
 
-            this.#proc!.force_exit();
+            proc.force_exit();
         });
     }
 
@@ -103,6 +106,7 @@ export class NightLight extends GObject.Object {
             await this.quitDaemon();
 
         this.#proc = Gio.Subprocess.new(["hyprsunset"], Gio.SubprocessFlags.STDOUT_SILENCE);
+        this.watchDaemon(this.#proc);
     }
 
     private async syncData(): Promise<void> {
@@ -284,5 +288,24 @@ export class NightLight extends GObject.Object {
         } finally {
             this.#restartInFlight = false;
         }
+    }
+
+    private watchDaemon(proc: Gio.Subprocess): void {
+        proc.wait_async(null, async (_, res) => {
+            try {
+                proc.wait_finish(res);
+            } catch(error) {
+                console.error(`Night Light: Failed while waiting for daemon exit. Stderr: ${
+                    (error as Error).message
+                }\n${(error as Error).stack}`);
+                return;
+            }
+
+            if(this.#proc !== proc)
+                return;
+
+            this.#proc = null;
+            await this.restartDaemonAndRestore();
+        });
     }
 }
