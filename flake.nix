@@ -19,7 +19,9 @@
 
   outputs =
     inputs@{ flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
+    flake-parts.lib.mkFlake { inherit inputs; } (
+      { withSystem, ... }:
+      {
       imports = [
         # To import an internal flake module: ./other.nix
         # To import an external flake module:
@@ -52,9 +54,11 @@
           devShells = import ./nix/devshell.nix { inherit self' pkgs; };
         };
       flake = {
+        homeManagerModules.default = import ./nix/home-manager.nix { inherit withSystem; };
         passthru = {
           inherit inputs;
         };
       };
-    };
+      }
+    );
 }

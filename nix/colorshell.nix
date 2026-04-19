@@ -36,6 +36,7 @@
   slurp,
   systemd,
   util-linux,
+  uwsm,
   wf-recorder,
   wl-clipboard,
   xdg-utils,
@@ -231,6 +232,7 @@ buildNpmPackage (finalAttrs: {
           slurp
           systemd
           util-linux
+          uwsm
           wf-recorder
           wl-clipboard
           xdg-utils

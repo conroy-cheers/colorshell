@@ -59,6 +59,7 @@ export class Wallpaper extends GObject.Object {
     #wallpapersPath: string;
     /** pywal-generated colors file */
     #walFile: Gio.File = Gio.File.new_for_path(`${GLib.get_user_cache_dir()}/wal/colors`);
+    #walJsonFile: Gio.File = Gio.File.new_for_path(`${GLib.get_user_cache_dir()}/wal/colors.json`);
     #proc: Gio.Subprocess|null = null;
 
     @signal()
@@ -93,8 +94,10 @@ export class Wallpaper extends GObject.Object {
     constructor() {
         super();
 
-        this.#wallpapersPath = GLib.getenv("WALLPAPERS") ?? 
-            `${GLib.get_home_dir()}/wallpapers`;
+        const configuredDirectory = generalConfig.getProperty("wallpaper.directory", "string").trim();
+        this.#wallpapersPath = configuredDirectory
+            || GLib.getenv("WALLPAPERS")
+            || `${GLib.get_home_dir()}/wallpapers`;
 
         this.#hyprpaperFile = Gio.File.new_for_path(`${
             GLib.get_user_config_dir()}/hypr/hyprpaper.conf`);
@@ -119,7 +122,13 @@ export class Wallpaper extends GObject.Object {
             }
         }
 
-        if(this.#wallpaper && !this.#walFile.query_exists(null))
+        if(!this.#wallpaper) {
+            const defaultWallpaper = generalConfig.getProperty("wallpaper.default_path", "string").trim();
+            if(defaultWallpaper && GLib.file_test(defaultWallpaper, GLib.FileTest.EXISTS))
+                this.#wallpaper = defaultWallpaper;
+        }
+
+        if(this.#wallpaper && (!this.#walFile.query_exists(null) || !this.#walJsonFile.query_exists(null)))
             this.reloadColors();
 
         this.writeChanges();
@@ -296,7 +305,7 @@ ${wallpaperBlock}`
     }
 
     public getData(): WalData {
-        const content = readFile(`${GLib.getenv("XDG_CACHE_HOME")}/wal/colors.json`);
+        const content = readFile(this.#walJsonFile);
         return JSON.parse(content) as WalData;
     }
 

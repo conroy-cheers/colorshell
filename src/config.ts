@@ -2,8 +2,50 @@ import { Config } from "./modules/config";
 import { Idle } from "./modules/idle";
 import { NightLight } from "./modules/nightlight";
 import { WallpaperPositioning, WalMode } from "./modules/wallpaper";
+import { readFile } from "ags/file";
 
+import Gio from "gi://Gio?version=2.0";
 import GLib from "gi://GLib?version=2.0";
+
+type JSONObject = Record<string, unknown>;
+
+function mergeObjects<T extends JSONObject>(base: T, override: JSONObject): T {
+    const result = { ...base } as JSONObject;
+
+    Object.entries(override).forEach(([key, value]) => {
+        const current = result[key];
+
+        if(value != null &&
+           typeof value === "object" &&
+           !Array.isArray(value) &&
+           current != null &&
+           typeof current === "object" &&
+           !Array.isArray(current)) {
+
+            result[key] = mergeObjects(current as JSONObject, value as JSONObject);
+            return;
+        }
+
+        result[key] = value;
+    });
+
+    return result as T;
+}
+
+function loadRepoConfigOverrides(): JSONObject {
+    const filePath = `${GLib.get_user_config_dir()}/colorshell/config.overrides.json`,
+        file = Gio.File.new_for_path(filePath);
+
+    if(!file.query_exists(null))
+        return {};
+
+    try {
+        return JSON.parse(readFile(filePath)) as JSONObject;
+    } catch(error) {
+        console.error("Config: Couldn't load repo-provided config overrides", error);
+        return {};
+    }
+}
 
 
 const generalConfigDefaults = {
@@ -59,14 +101,28 @@ const generalConfigDefaults = {
     },
 
     wallpaper: {
+        /** default wallpaper path used on first start when there is no existing
+         * hyprpaper configuration or wal cache. @default "" */
+        default_path: "",
+        /** directory searched by the wallpaper runner plugin.
+         * when empty, colorshell falls back to `$WALLPAPERS` or `~/wallpapers`.
+         * @default "" */
+        directory: "",
         /** wallpaper positioning mode (hyprpaper) */
         positioning: "cover" satisfies WallpaperPositioning,
         /** color generation mode. 
           * darken: picks darker colors; lighten: picks brighter colors */
         color_mode: "darken" satisfies WalMode,
         /** whether to enable Hyprland's random splash text pn the wallpaper.
-         * only takes effect after a hyprpaper restart. (`systemctl restart --user hyprpaper`) */
+         * only takes effect after a hyprpaper restart. (`colorshell reload`) */
         splash: true
+    },
+
+    theming: {
+        /** command invoked after pywal finishes regenerating colors.
+         * when empty, no external runtime theming bridge is triggered.
+         * @default "" */
+        apply_command: ""
     },
 
     workspaces: {
@@ -103,6 +159,11 @@ const generalConfigDefaults = {
     }
 };
 
+const mergedGeneralConfigDefaults = mergeObjects(
+    generalConfigDefaults as JSONObject,
+    loadRepoConfigOverrides()
+) as typeof generalConfigDefaults;
+
 const userDataDefaults = {
     /** last default adapter */
     bluetooth_default_adapter: undefined as unknown as string,
@@ -136,5 +197,5 @@ export const generalConfig = new Config<
     typeof generalConfigDefaults[keyof typeof generalConfigDefaults]
 >(
     `${GLib.get_user_config_dir()}/colorshell/config.json`, 
-    generalConfigDefaults
+    mergedGeneralConfigDefaults
 );

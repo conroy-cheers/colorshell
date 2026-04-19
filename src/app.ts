@@ -12,7 +12,7 @@ import { OSD } from "./window/osd";
 import { programArgs, programInvocationName } from "system";
 import { setConsoleLogDomain } from "console";
 import { createScopedConnection, encoder, getDBusNamePID } from "./modules/utils";
-import { exec } from "ags/process";
+import { exec, execAsync } from "ags/process";
 import { NightLight } from "./modules/nightlight";
 import { initCompositor } from "./compositors";
 import { Input } from "./modules/input";
@@ -20,9 +20,68 @@ import { Idle } from "./modules/idle";
 import { register } from "ags/gobject";
 import { initWindows } from "./windows";
 import Media from "./modules/media";
+import { generalConfig } from "./config";
 import GLib from "gi://GLib?version=2.0";
 import Gio from "gi://Gio?version=2.0";
 import Adw from "gi://Adw?version=1";
+
+let runtimeThemeRunning = false,
+    runtimeThemeQueued = false;
+
+function getRuntimeThemeCommand(): string {
+    return generalConfig.getProperty("theming.apply_command", "string").trim();
+}
+
+async function runRuntimeThemeBridge(reason: string): Promise<void> {
+    const command = getRuntimeThemeCommand();
+    if(!command)
+        return;
+
+    if(runtimeThemeRunning) {
+        runtimeThemeQueued = true;
+        return;
+    }
+
+    runtimeThemeRunning = true;
+
+    try {
+        await execAsync(command);
+        console.log(`Colorshell: Applied runtime theming (${reason})`);
+    } catch(error) {
+        const err = error as Error;
+        console.error(`Colorshell: Couldn't apply runtime theme bridge. Stderr: ${err.message}\n${err.stack}`);
+        Notifications.getDefault().sendNotification({
+            appName: "colorshell",
+            summary: "Runtime theming failed",
+            body: err.message
+        });
+    } finally {
+        runtimeThemeRunning = false;
+
+        if(runtimeThemeQueued) {
+            runtimeThemeQueued = false;
+            runRuntimeThemeBridge("queued refresh").catch(console.error);
+        }
+    }
+}
+
+function initRuntimeThemeBridge(): void {
+    const wallpaper = Wallpaper.getDefault();
+    wallpaper.connect("colors-reloaded", () => {
+        runRuntimeThemeBridge("palette refresh").catch(console.error);
+    });
+
+    generalConfig.connect("property-changed", (_, path: string) => {
+        if(path !== "theming.apply_command")
+            return;
+
+        if(getRuntimeThemeCommand())
+            runRuntimeThemeBridge("config change").catch(console.error);
+    });
+
+    if(getRuntimeThemeCommand())
+        runRuntimeThemeBridge("startup").catch(console.error);
+}
 
 
 @register({ GTypeName: "Shell" })
@@ -31,6 +90,8 @@ export class Shell extends Adw.Application {
 
     public static runtimeDir: Gio.File = Gio.File.new_for_path(`${
         GLib.get_user_runtime_dir() ?? `/run/user/${exec("id -u").trim()}`}/colorshell`);
+    public static userConfigDir: Gio.File = Gio.File.new_for_path(`${
+        GLib.get_user_config_dir() ?? `${GLib.get_home_dir()}/.config`}/colorshell`);
     public static dataDir: Gio.File = Gio.File.new_for_path(`${
         GLib.get_user_data_dir() ?? `${GLib.get_home_dir()}/.local/share`}/colorshell`);
     public static cacheDir: Gio.File = Gio.File.new_for_path(`${
@@ -151,6 +212,7 @@ export class Shell extends Adw.Application {
         // create shell directories
         [
             Shell.runtimeDir,
+            Shell.userConfigDir,
             Shell.cacheDir,
             Shell.dataDir,
             Shell.runtimeConfigDir
@@ -212,9 +274,29 @@ export class Shell extends Adw.Application {
             if(!/\..*$/.test(name))
                 return;
 
-            const data = Gio.resources_lookup_data(`/io/github/retrozinndev/colorshell/config/${name}`, null),
-                file = Gio.File.new_for_path(`${Shell.runtimeDir.peek_path()!}/config/${name}`);
+            const file = Gio.File.new_for_path(`${Shell.runtimeDir.peek_path()!}/config/${name}`),
+                externalFile = Gio.File.new_for_path(`${Shell.userConfigDir.peek_path()!}/${name}`);
 
+            if(name === "hyprlock.conf" && externalFile.query_exists(null)) {
+                try {
+                    if(file.query_exists(null))
+                        file.delete(null);
+
+                    const [data] = externalFile.load_bytes(null);
+                    file.replace_contents(
+                        data.toArray(),
+                        null,
+                        false,
+                        Gio.FileCreateFlags.REPLACE_DESTINATION,
+                        null
+                    );
+                    return;
+                } catch(error) {
+                    console.error("Colorshell: Couldn't copy external hyprlock config, falling back to bundled config", error);
+                }
+            }
+
+            const data = Gio.resources_lookup_data(`/io/github/retrozinndev/colorshell/config/${name}`, null);
             file.replace_contents_bytes_async(data, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null, null);
         });
 
@@ -292,6 +374,7 @@ export class Shell extends Adw.Application {
         console.log("Colorshell: Initializing modules");
         initCompositor();
         Wallpaper.getDefault();
+        initRuntimeThemeBridge();
         Stylesheet.getDefault();
         Media.getDefault();
 
