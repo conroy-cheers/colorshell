@@ -16,9 +16,11 @@ export const showWorkspaceNumber = (show: boolean) =>
 export const Workspaces = () => {
     const workspaces = createBinding(AstalHyprland.get_default(), "workspaces"),
         defaultWorkspaces = workspaces.as(wss => 
-            wss.filter(ws => ws.id > 0).sort((a, b) => a.id - b.id)),
+            wss.filter((ws): ws is AstalHyprland.Workspace => Boolean(ws) && ws.id > 0)
+                .sort((a, b) => a.id - b.id)),
         specialWorkspaces = workspaces.as(wss => 
-            wss.filter(ws => ws.id < 0).sort((a, b) => a.id - b.id)),
+            wss.filter((ws): ws is AstalHyprland.Workspace => Boolean(ws) && ws.id < 0)
+                .sort((a, b) => a.id - b.id)),
         focusedWorkspace = createBinding(AstalHyprland.get_default(), "focusedWorkspace");
 
 
@@ -100,12 +102,12 @@ export const Workspaces = () => {
                           createBinding(AstalHyprland.get_default(), "focusedWorkspace"),
                           showId
                       ], (focusedWs, showWsNumbers) =>
-                          `workspace ${focusedWs.id === ws.id ? "focus" : ""} ${
+                          `workspace ${focusedWs?.id === ws.id ? "focus" : ""} ${
                               showWsNumbers ? "show" : ""}`
                       )} tooltipText={createComputed([
                           createBinding(ws, "lastClient"),
                           createBinding(AstalHyprland.get_default(), "focusedWorkspace")
-                      ], (lastClient, focusWs) => focusWs.id === ws.id ? "" : 
+                      ], (lastClient, focusWs) => focusWs?.id === ws.id ? "" : 
                           `workspace ${ws.id}${ lastClient ? ` - ${
                               !lastClient.title.toLowerCase().includes(lastClient.class) ?
                                   `${lastClient.get_class()}: `
@@ -118,7 +120,7 @@ export const Workspaces = () => {
                                 <Gtk.Box class={"last-client"} hexpand>
                                     <Gtk.Revealer transitionDuration={280} revealChild={showId}
                                       transitionType={focusedWorkspace.as(
-                                          fws => fws.id !== ws.id ? 
+                                          fws => fws?.id !== ws.id ? 
                                               Gtk.RevealerTransitionType.SLIDE_LEFT
                                           : Gtk.RevealerTransitionType.SLIDE_RIGHT
                                       )}>
@@ -131,7 +133,7 @@ export const Workspaces = () => {
                                           getSymbolicIcon(initialClass) ?? getAppIcon(initialClass) ??
                                               "application-x-executable-symbolic")} 
                                       hexpand vexpand visible={createBinding(AstalHyprland.get_default(), "focusedWorkspace")
-                                          .as(fws => fws.id !== ws.id)}
+                                          .as(fws => fws?.id !== ws.id)}
                                     />}
                                 </Gtk.Box>
                             }
