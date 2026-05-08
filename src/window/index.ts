@@ -18,6 +18,7 @@ export class Windows<T extends string = string> extends GObject.Object {
 
     #scope: Scope;
     #windows: Record<string, Windows.Window> = {};
+    #requestedOpenWindows = new Set<T>();
 
     @signal(String) windowOpen(_name: string) {}
     @signal(String) windowClosed(_name: string) {}
@@ -43,8 +44,7 @@ export class Windows<T extends string = string> extends GObject.Object {
             );
             createScopedConnection(
                 AstalHyprland.get_default(), "monitor-removed",
-                () => AstalHyprland.get_default().get_monitors().length > 0 &&
-                    setTimeout(() => this.reopen(), 1200)
+                () => setTimeout(() => this.reopen(), 1200)
             );
         });
     }
@@ -250,8 +250,18 @@ export class Windows<T extends string = string> extends GObject.Object {
             return;
         }
 
-        this.#windows[name].status = Windows.Status.OPEN;
-        const windowInstance = window.create();
+        this.#requestedOpenWindows.add(name);
+
+        let windowInstance: Astal.Window|Array<Astal.Window>;
+        try {
+            windowInstance = window.create();
+        } catch(error) {
+            window.status = Windows.Status.CLOSED;
+            delete window.instance;
+            console.error(`Windows: couldn't open \`${name}\`. Will retry when monitors change.`, error);
+            this.notify("open-windows");
+            return;
+        }
 
         if(Array.isArray(windowInstance)) {
             window.instance = windowInstance.map(wi => {
@@ -263,27 +273,43 @@ export class Windows<T extends string = string> extends GObject.Object {
             windowInstance.show();
         }
 
+        window.status = Windows.Status.OPEN;
         this.connectWindow(name);
 
         this.emit("window-open", name);
         this.notify("open-windows");
     }
 
-    public close(name: T): void {
+    private closeWindow(name: T, preserveRequest: boolean = false): void {
+        if(!preserveRequest)
+            this.#requestedOpenWindows.delete(name);
+
         if(!this.isOpen(name)) return;
 
-        this.disconnectWindow(name);
         const window = this.#windows[name];
+
+        if(!window.instance) {
+            window.status = Windows.Status.CLOSED;
+            this.notify("open-windows");
+            return;
+        }
+
+        this.disconnectWindow(name);
 
         if(Array.isArray(window.instance)) 
             window.instance.map(inst => inst.instance!.close());
         else 
             window.instance!.instance!.close();
 
+        delete window.instance;
         this.#windows[name].status = Windows.Status.CLOSED;
 
         this.emit("window-closed", name);
         this.notify("open-windows");
+    }
+
+    public close(name: T): void {
+        this.closeWindow(name);
     }
 
     public toggle(name: T): void {
@@ -291,13 +317,13 @@ export class Windows<T extends string = string> extends GObject.Object {
     }
 
     public closeAll(): void {
-        this.openWindows.forEach(name => this.close(name as T));
+        [ ...this.#requestedOpenWindows ].forEach(name => this.close(name));
     }
 
     public reopen(): void {
-        const openWins = [ ...this.openWindows ];
-        this.closeAll();
-        openWins.forEach(name => this.open(name as T));
+        const openWins = [ ...this.#requestedOpenWindows ];
+        this.openWindows.forEach(name => this.closeWindow(name as T, true));
+        openWins.forEach(name => this.open(name, true));
     }
 }
 
