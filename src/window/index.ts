@@ -19,6 +19,7 @@ export class Windows<T extends string = string> extends GObject.Object {
     #scope: Scope;
     #windows: Record<string, Windows.Window> = {};
     #requestedOpenWindows = new Set<T>();
+    #reopenScheduled = false;
 
     @signal(String) windowOpen(_name: string) {}
     @signal(String) windowClosed(_name: string) {}
@@ -40,13 +41,24 @@ export class Windows<T extends string = string> extends GObject.Object {
             // Listen to monitor events
             createScopedConnection(
                 AstalHyprland.get_default(), "monitor-added",
-                () => setTimeout(() => this.reopen(), 1200) // we wait a little bit for the monitor to display
+                () => this.scheduleReopen(1200)
             );
             createScopedConnection(
                 AstalHyprland.get_default(), "monitor-removed",
-                () => setTimeout(() => this.reopen(), 1200)
+                () => this.scheduleReopen(1200)
             );
         });
+    }
+
+    private scheduleReopen(delay: number): void {
+        if(this.#reopenScheduled)
+            return;
+
+        this.#reopenScheduled = true;
+        setTimeout(() => {
+            this.#reopenScheduled = false;
+            this.reopen();
+        }, delay);
     }
 
     private disconnectWindow(name: T) {
@@ -258,8 +270,9 @@ export class Windows<T extends string = string> extends GObject.Object {
         } catch(error) {
             window.status = Windows.Status.CLOSED;
             delete window.instance;
-            console.error(`Windows: couldn't open \`${name}\`. Will retry when monitors change.`, error);
+            console.error(`Windows: couldn't open \`${name}\`. Will retry shortly.`, error);
             this.notify("open-windows");
+            this.scheduleReopen(3000);
             return;
         }
 

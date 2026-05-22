@@ -131,13 +131,15 @@ buildNpmPackage (finalAttrs: {
       ;
 
     nativeBuildInputs = [ pnpm_10 ];
+    pnpm = pnpm_10;
 
-    fetcherVersion = 2;
-    hash = "sha256-Z5JP7hPEjLY9wGnWe6kM6T1qk3UUSlJnoxdDqS/ksnw=";
+    fetcherVersion = 3;
+    hash = "sha256-pmzMsNkdCMyWBybbTttxO2F344Gc1QRAouxl7O6E+HE=";
 
-    # fetcher version 2 fails if there are no *-exec files in the output
+    # The pnpm store has no executable entries, but the fetcher still expects at
+    # least one *-exec file while normalizing permissions.
     preFixup = ''
-      touch $out/.dummy-exec
+      touch "$storePath/.dummy-exec"
     '';
   };
 
