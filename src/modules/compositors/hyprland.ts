@@ -16,6 +16,7 @@ export class CompositorHyprland extends Compositor {
     #eventSock: Socket;
     #configDir: Gio.File = Gio.File.new_for_path(`${Shell.runtimeDir.peek_path()!}/config/hyprland`);
     #ignoreConfigReload: boolean = false;
+    #usesLuaConfig: boolean = false;
     hyprland: AstalHyprland.Hyprland = AstalHyprland.get_default();
 
     constructor() {
@@ -25,6 +26,7 @@ export class CompositorHyprland extends Compositor {
         if(instSignature === null || instSignature.trim() === "")
             throw new Error("Compositor: Hyprland: Couldn't get instance signature");
 
+        this.#usesLuaConfig = this.usesLuaConfig();
         this.initConfig();
         this.#eventSock = new Socket(
             Socket.Type.CLIENT,
@@ -112,15 +114,42 @@ export class CompositorHyprland extends Compositor {
         return (JSON.parse(exec("hyprctl clients -j")) as Array<CompositorHyprland.Client>);
     }
 
-    
+    private shellQuote(value: string): string {
+        return `'${value.replace(/'/g, "'\\''")}'`;
+    }
+
+    private luaString(value: string): string {
+        return `"${value
+            .replace(/\\/g, "\\\\")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, "\\n")
+            .replace(/\r/g, "\\r")
+            .replace(/\t/g, "\\t")}"`;
+    }
+
+    private evalLua(code: string): string {
+        return exec(`hyprctl eval ${this.shellQuote(code)}`);
+    }
+
+    private usesLuaConfig(): boolean {
+        try {
+            return this.evalLua('return "ok"').trim() === "ok";
+        } catch {
+            return false;
+        }
+    }
+
     private source(path: string): void {
-        if(!path.endsWith(".conf"))
+        if(this.#usesLuaConfig && !path.endsWith(".lua"))
+            return;
+
+        if(!this.#usesLuaConfig && !path.endsWith(".conf"))
             return;
 
         try {
-            const out = exec(
-                `hyprctl keyword source "${path}"`
-            );
+            const out = this.#usesLuaConfig ?
+                this.evalLua(`dofile(${this.luaString(path)})`) :
+                exec(`hyprctl keyword source "${path}"`);
 
             !/^ok.*$/.test(out) &&
                 console.error(out);
@@ -133,7 +162,8 @@ export class CompositorHyprland extends Compositor {
         const names = Gio.resources_enumerate_children(
             "/io/github/retrozinndev/colorshell/config/hyprland",
             null
-        ).filter(name => !name.includes("bindings"));
+        ).filter(name => !name.includes("bindings"))
+            .filter(name => name.endsWith(this.#usesLuaConfig ? ".lua" : ".conf"));
 
         exec("hyprctl reload");
         names.forEach(name => this.source(`${this.#configDir.peek_path()!}/${name}`));
@@ -181,6 +211,11 @@ export class CompositorHyprland extends Compositor {
                 bind.key = key.toLowerCase();
         }
 
+        if(this.#usesLuaConfig) {
+            this.loadLuaBinds(binds);
+            return;
+        }
+
         binds.forEach(bind => {
             const userBinds = AstalHyprland.get_default().get_binds();
             const match = userBinds.find(b => b.modmask === bind.modmask && 
@@ -196,6 +231,53 @@ export class CompositorHyprland extends Compositor {
             execAsync(`hyprctl keyword bind${bind.flags ?? ""} "${bind.params}"`)
                 .catch(console.error);
         });
+    }
+
+    private loadLuaBinds(binds: Array<{ params: string, flags?: string, modmask: number, key: string }>): void {
+        binds.forEach(bind => {
+            const userBinds = AstalHyprland.get_default().get_binds();
+            const match = userBinds.find(b => b.modmask === bind.modmask &&
+                b.key.trim().toLowerCase() === bind.key.trim().toLowerCase()
+            );
+
+            if(match)
+                return;
+
+            const luaBind = this.luaBindFromLegacy(bind);
+            if(!luaBind)
+                return;
+
+            execAsync(`hyprctl eval ${this.shellQuote(luaBind)}`)
+                .catch(console.error);
+        });
+    }
+
+    private luaBindFromLegacy(bind: { params: string, flags?: string }): string|null {
+        const [modkey = "", key = "", dispatcher = "", ...args] =
+            bind.params.split(',').map(param => param.trim());
+        const keyParts = [
+            ...modkey.split(/\s+/).filter(Boolean),
+            key
+        ].filter(Boolean);
+
+        if(keyParts.length === 0)
+            return null;
+
+        if(dispatcher !== "exec") {
+            console.warn(`Compositor: Hyprland: Unsupported Lua bind dispatcher "${dispatcher}"`);
+            return null;
+        }
+
+        const command = args.join(",").replace(/\s+#.*$/, "");
+        const options = bind.flags?.includes("e") ? ", { repeating = true }" : "";
+        const keyString = keyParts.join("+");
+
+        return [
+            `hl.unbind(${this.luaString(keyString)})`,
+            `hl.bind(${this.luaString(keyString)}, function()`,
+            `    hl.exec_cmd(${this.luaString(command)})`,
+            `end${options})`
+        ].join("\n");
     }
 
     /** load necessary hyprland configs from gresource */
