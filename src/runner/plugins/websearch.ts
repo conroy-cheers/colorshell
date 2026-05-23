@@ -1,5 +1,5 @@
-import AstalHyprland from "gi://AstalHyprland";
 import { Runner } from "..";
+import { dispatchExec } from "../../modules/hyprland-dispatch";
 
 
 const searchEngines = {
@@ -19,9 +19,6 @@ export const PluginWebSearch = {
         icon: "system-search-symbolic",
         title: search || "Type your search...",
         description: `Search the Web`,
-        actionClick: () => AstalHyprland.get_default().dispatch(
-            "exec", 
-            `xdg-open \"${engine + search}\"`
-        )
+        actionClick: () => dispatchExec(`xdg-open \"${engine + search}\"`)
     })
 } as Runner.Plugin;

@@ -4,6 +4,7 @@ import { generalConfig } from "../../config";
 import { AskPopup } from "../../widget/AskPopup";
 import { Notifications } from "../../modules/notifications";
 import { NightLight } from "../../modules/nightlight";
+import { dispatchExit } from "../../modules/hyprland-dispatch";
 import { time } from "../../modules/utils";
 
 import GObject from "ags/gobject";
@@ -99,12 +100,15 @@ export const LogoutMenu = Windows.forFocusedMonitor((mon) =>
                           generalConfig.getProperty("night_light.save_on_shutdown", "boolean") && 
                               NightLight.getDefault().saveData();
 
-                          execAsync(`hyprctl dispatch exit`).catch((err: Gio.IOErrorEnum) => 
+                          try {
+                              dispatchExit();
+                          } catch(err) {
                               Notifications.getDefault().sendNotification({
                                   appName: "colorshell",
                                   summary: "Couldn't exit Hyprland",
                                   body: `An error occurred and colorshell couldn't exit Hyprland. Stderr: \n${
-                                      err.message ? `${err.message}\n` : ""}${err.stack}`,
+                                      (err as Error).message ? `${(err as Error).message}\n` : ""}${
+                                      (err as Error).stack}`,
                                   urgency: AstalNotifd.Urgency.NORMAL,
                                   actions: [{
                                       text: "Report Issue on colorshell",
@@ -119,8 +123,8 @@ export const LogoutMenu = Windows.forFocusedMonitor((mon) =>
                                           })
                                       )
                                   }]
-                              })
-                          )
+                              });
+                          }
                       }
                   })}
                 />

@@ -2,8 +2,8 @@ import { Gdk, Gtk } from "ags/gtk4";
 import { execAsync } from "ags/process";
 
 import AstalApps from "gi://AstalApps";
-import AstalHyprland from "gi://AstalHyprland";
 import GLib from "gi://GLib?version=2.0";
+import { dispatchExec } from "./hyprland-dispatch";
 
 
 export const uwsmIsActive: boolean = await execAsync(
@@ -70,11 +70,7 @@ export function execApp(app: AstalApps.Application|string, dispatchExecArgs?: st
         ? desktopLaunchCommand(app)
         : executable;
 
-    AstalHyprland.get_default().dispatch("exec",
-        `${dispatchExecArgs ? `${dispatchExecArgs} ` : ""}${
-            command
-        }`
-    );
+    dispatchExec(command, dispatchExecArgs);
 }
 
 export function lookupIcon(name: string): boolean {

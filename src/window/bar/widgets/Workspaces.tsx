@@ -4,6 +4,10 @@ import { Separator } from "../../../widget/Separator";
 import { generalConfig } from "../../../config";
 import { createBinding, createComputed, createState, For, With } from "ags";
 import { variableToBoolean } from "../../../modules/utils";
+import {
+    dispatchToggleSpecialWorkspace,
+    dispatchWorkspace
+} from "../../../modules/hyprland-dispatch";
 
 import AstalHyprland from "gi://AstalHyprland";
 
@@ -36,8 +40,8 @@ export const Workspaces = () => {
                       tooltipText={createBinding(ws, "name").as(name => {
                           name = name.replace(/^special\:/, "");
                           return name.charAt(0).toUpperCase().concat(name.substring(1, name.length));
-                      })} onClicked={() => AstalHyprland.get_default().dispatch(
-                          "togglespecialworkspace", ws.name.replace(/^special[:]/, "")
+                      })} onClicked={() => dispatchToggleSpecialWorkspace(
+                          ws.name.replace(/^special[:]/, "")
                       )}>
 
                         <With value={createBinding(ws, "lastClient")}>
@@ -63,9 +67,7 @@ export const Workspaces = () => {
         <Gtk.Box class={"default-workspaces"} spacing={4}>
             <Gtk.EventControllerScroll $={(self) => self.set_flags(Gtk.EventControllerScrollFlags.VERTICAL)}
               onScroll={(_, __, dy) => {
-                  dy > 0 ?
-                      AstalHyprland.get_default().dispatch("workspace", "e-1")
-                  : AstalHyprland.get_default().dispatch("workspace", "e+1");
+                  dy > 0 ? dispatchWorkspace("e-1") : dispatchWorkspace("e+1");
 
                   return true;
               }}
