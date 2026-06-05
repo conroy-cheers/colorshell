@@ -134,7 +134,7 @@ buildNpmPackage (finalAttrs: {
     pnpm = pnpm_10;
 
     fetcherVersion = 3;
-    hash = "sha256-pmzMsNkdCMyWBybbTttxO2F344Gc1QRAouxl7O6E+HE=";
+    hash = "sha256-+YKzFXVvhcmsGnfrOOaqGNjUBgpBfGCbsVG3ZWbOR94=";
 
     # The pnpm store has no executable entries, but the fetcher still expects at
     # least one *-exec file while normalizing permissions.

@@ -8,6 +8,11 @@ declare module "inline:*" {
     export default content
 }
 
+declare module "fuzzysort/fuzzysort.js" {
+    const fuzzysort: Fuzzysort.Fuzzysort;
+    export default fuzzysort;
+}
+
 declare module "*.scss" {
     const content: string
     export default content

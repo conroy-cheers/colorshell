@@ -1,4 +1,5 @@
-import { execApp, getAstalApps, lookupIcon, updateApps } from "../../modules/apps";
+import { execApp, updateApps } from "../../modules/apps";
+import { searchApps } from "../../modules/app-search";
 import { Runner } from "..";
 
 export const PluginApps = {
@@ -6,11 +7,11 @@ export const PluginApps = {
     name: "Apps",
     // asynchronously-refresh apps list on init
     init: async () => updateApps(),
-    handle: (text: string) => {
-        return getAstalApps().fuzzy_query(text).map(app => ({
-                title: app.get_name(),
-                description: app.get_description(),
-                icon: (app.iconName && lookupIcon(app.iconName)) ? app.iconName : "application-x-executable-symbolic",
+    handle: (text: string, limit?: number) => {
+        return searchApps(text, limit).map(({ app, icon }) => ({
+                title: app.name,
+                description: app.description,
+                icon,
                 actionClick: () => execApp(app)
             })
         );

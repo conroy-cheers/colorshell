@@ -1,8 +1,8 @@
 import { Astal, Gdk, Gtk } from "ags/gtk4";
-import { execApp, getAppIcon, getApps, getAstalApps } from "../../modules/apps";
+import { execApp } from "../../modules/apps";
+import { AppSearchItem, searchApps } from "../../modules/app-search";
 import { getPopupWindowContainer, PopupWindow } from "../../widget/PopupWindow";
 
-import AstalApps from "gi://AstalApps";
 import Pango from "gi://Pango?version=1.0";
 import { createRoot, createState } from "ags";
 import { escapeUnintendedMarkup } from "../../modules/utils";
@@ -22,7 +22,7 @@ const ignoredKeys = [
 ];
 
 export const AppsWindow = Windows.forFocusedMonitor((mon) => {
-    const [results, setResults] = createState(getApps() as Array<AstalApps.Application>);
+    const [results, setResults] = createState(searchApps(""));
 
     return <PopupWindow namespace="apps-window" layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.IGNORE} monitor={mon} marginTop={64} 
@@ -39,7 +39,7 @@ export const AppsWindow = Windows.forFocusedMonitor((mon) => {
       }}>
         <Gtk.SearchEntry hexpand={false} halign={Gtk.Align.CENTER}
           onSearchChanged={(self) => {
-              setResults(getAstalApps().fuzzy_query(self.text.trim()));
+              setResults(searchApps(self.text));
           }}
           onStopSearch={(self) => (self.get_root() as Astal.Window)?.close()} 
         />
@@ -75,7 +75,9 @@ export const AppsWindow = Windows.forFocusedMonitor((mon) => {
     </PopupWindow>
 });
 
-function AppWidget(app: AstalApps.Application): Gtk.Widget {
+function AppWidget(item: AppSearchItem): Gtk.Widget {
+    const { app, icon } = item;
+
     return createRoot((dispose) => 
         <Gtk.Button widthRequest={150} heightRequest={150} tooltipMarkup={`${
             escapeUnintendedMarkup(app.name)}${app.description ? 
@@ -92,7 +94,7 @@ function AppWidget(app: AstalApps.Application): Gtk.Widget {
             <Gtk.Box orientation={Gtk.Orientation.VERTICAL} valign={Gtk.Align.CENTER}
               hexpand={false} vexpand={false}>
 
-                <Gtk.Image iconName={getAppIcon(app) ?? "application-x-executable"} 
+                <Gtk.Image iconName={icon}
                   iconSize={Gtk.IconSize.LARGE} vexpand={false} class={"app-icon"} />
                 <Gtk.Label ellipsize={Pango.EllipsizeMode.END} label={app.name}
                   valign={Gtk.Align.END} maxWidthChars={30} class={"app-name"} />
