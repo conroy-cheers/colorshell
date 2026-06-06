@@ -115,7 +115,7 @@ export const Workspaces = () => {
                                   `${lastClient.get_class()}: `
                               : ""
                           } ${lastClient.title}` : "" }`
-                      )} onClicked={() => focusedWorkspace.get()?.id !== ws.id && ws.focus()}>
+                      )} onClicked={() => focusedWorkspace.get()?.id !== ws.id && dispatchWorkspace(ws.id)}>
                         
                         <With value={createBinding(ws, "lastClient")}>
                             {(lastClient: AstalHyprland.Client) => 
