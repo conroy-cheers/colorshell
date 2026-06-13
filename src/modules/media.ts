@@ -24,35 +24,71 @@ export default class Media extends GObject.Object {
         super();
         
         scope.run(() => {
-            const firstPlayer = AstalMpris.get_default().players[0];
-            if(firstPlayer) 
-                this.player = firstPlayer;
+            this.selectBestPlayer();
 
             createScopedConnection(
                 AstalMpris.get_default(), 
                 "player-added", 
                 (player) => {
-                    if(player.available) 
-                        this.player = player;
+                    scope.run(() => this.watchPlayer(player));
+                    this.selectBestPlayer();
+                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+                        this.selectBestPlayer();
+                        return GLib.SOURCE_REMOVE;
+                    });
                 }
             );
 
             createScopedConnection(
                 AstalMpris.get_default(),
                 "player-closed", (closedPlayer) => {
-                    const players = AstalMpris.get_default().players.filter(pl => pl?.available && 
-                        pl.busName !== closedPlayer.busName);
+                    if(this.player.busName === closedPlayer.busName)
+                        this.player = Media.dummyPlayer;
 
-                    // go back to first player(if available) when the active player is closed
-                    if(players.length > 0 && players[0]) {
-                        this.player = players[0];
-                        return;
-                    } 
-                    
-                    this.player = Media.dummyPlayer;
+                    this.selectBestPlayer();
                 }
             );
+
+            createScopedConnection(
+                AstalMpris.get_default(),
+                "notify::players",
+                () => this.selectBestPlayer()
+            );
+
+            AstalMpris.get_default().players.forEach(player => this.watchPlayer(player));
         });
+    }
+
+    private selectBestPlayer(): void {
+        const players = AstalMpris.get_default().players.filter(pl => pl?.available);
+
+        if(players.length === 0) {
+            this.player = Media.dummyPlayer;
+            return;
+        }
+
+        const isActive = (player: AstalMpris.Player): boolean =>
+            player.playbackStatus !== AstalMpris.PlaybackStatus.STOPPED;
+        const current = players.find(pl => pl.busName === this.player.busName);
+        const playing = players.find(pl =>
+            pl.playbackStatus === AstalMpris.PlaybackStatus.PLAYING);
+        const active = players.find(isActive);
+
+        this.player = playing ?? (current && isActive(current) ? current : undefined) ??
+            active ?? current ?? players[0];
+    }
+
+    private watchPlayer(player: AstalMpris.Player): void {
+        createScopedConnection(
+            player,
+            "notify::available",
+            () => this.selectBestPlayer()
+        );
+        createScopedConnection(
+            player,
+            "notify::playback-status",
+            () => this.selectBestPlayer()
+        );
     }
 
     public static getDefault(): Media {
