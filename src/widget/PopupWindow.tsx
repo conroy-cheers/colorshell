@@ -23,11 +23,22 @@ export class PopupWindow extends Astal.Window {
         this.close();
     }
 
+    @signal()
+    escape() {
+        if(!this.closeOnEscape)
+            return;
+
+        this.close();
+    }
+
     @signal(Number, Number)
     keyPressed(_: number, __: number) {}
 
     @property(Boolean)
     closeOnClickOutside: boolean = true;
+
+    @property(Boolean)
+    closeOnEscape: boolean = true;
 
     @property(gtype<string|null>(String))
     backgroundCss: string|null = null;
@@ -60,6 +71,9 @@ export class PopupWindow extends Astal.Window {
         if(props.backgroundCss !== undefined)
             this.backgroundCss = props.backgroundCss;
 
+        if(props.closeOnEscape != null)
+            this.closeOnEscape = props.closeOnEscape;
+
         if(props.closeOnClickOutside !== undefined)
             this.closeOnClickOutside = props.closeOnClickOutside;
 
@@ -71,7 +85,7 @@ export class PopupWindow extends Astal.Window {
             attach: this,
             exclusivity: Astal.Exclusivity.IGNORE
         });
-        this.#bg.hide();
+        this.#bg.visible = false;
 
         const gestureClick = Gtk.GestureClick.new();
         const keyController = Gtk.EventControllerKey.new();
@@ -91,7 +105,7 @@ export class PopupWindow extends Astal.Window {
 
         this.#conns.set(keyController, keyController.connect("key-pressed", (_, keyval, keycode) => {
             if(keyval === Gdk.KEY_Escape) {
-                this.emit("clicked-outside");
+                this.emit("escape");
                 return true;
             }
 
@@ -99,25 +113,21 @@ export class PopupWindow extends Astal.Window {
             return !this.propagateKeyEvent;
         }));
 
-        this.#conns.set(this, this.connect("close-request", () => {
-            this.#conns.forEach((id, obj) => obj.disconnect(id));
-        }));
-
         this.add_controller(gestureClick);
         this.add_controller(keyController);
     }
 
-    hide(): void {
-        this.#bg.hide();
-        super.hide();
+    vfunc_notify(pspec: GObject.ParamSpec): void {
+        switch(pspec.name) {
+            case "visible": {
+                this.#bg.visible = this.visible;
+                break;
+            };
+        }
     }
 
-    show(): void {
-        if(this.#bg.is_visible())
-            this.#bg.hide();
-
-        this.#bg.show();
-        super.show();
+    on_close_request(): void {
+        this.#conns.forEach((id, obj) => obj.disconnect(id));
     }
 
     close(): void {
@@ -139,11 +149,13 @@ export namespace PopupWindow {
         backgroundCss: string;
         propagateKeyEvent: boolean;
         closeOnClickOutside: boolean;
+        closeOnEscape: boolean;
     };
 
     export interface SignalSignatures extends Astal.Window.SignalSignatures {
-        "closed": () => void;
-        "clicked-outside": () => void;
-        "key-pressed": (keyval: number, keycode: number) => void;
+        "closed"(): void;
+        "clicked-outside"(): void;
+        "escape"(): void;
+        "key-pressed"(keyval: number, keycode: number): void;
     }
 }

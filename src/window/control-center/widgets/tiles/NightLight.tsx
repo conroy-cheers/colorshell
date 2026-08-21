@@ -1,11 +1,10 @@
 import Tile from "../Tile";
 import NightLight from "../../../../modules/nightlight";
-import { PageNightLight } from "../pages/NightLight";
-import { TilesPages } from "../tiles";
 import { createBinding, createComputed } from "ags";
+import type Pages from "../pages";
 
 
-export const TileNightLight = () => 
+export const TileNightLight = (pages: Pages) => 
     <Tile title={tr("control_center.tiles.night_light.title")}
         icon={"weather-clear-night-symbolic"}
         onMap={() => NightLight.getDefault().sync()}
@@ -23,6 +22,6 @@ export const TileNightLight = () =>
         hasArrow visible={createBinding(NightLight.getDefault(), "available")}
         onDisabled={() => NightLight.getDefault().identity = true}
         onEnabled={() => NightLight.getDefault().identity = false}
-        onClicked={() => TilesPages?.toggle(PageNightLight)}
+        onClicked={() => pages.toggle("nightlight")}
         state={createBinding(NightLight.getDefault(), "identity").as(identity => !identity)}
     />

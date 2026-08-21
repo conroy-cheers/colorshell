@@ -1,16 +1,16 @@
 import { Astal, Gtk } from "ags/gtk4";
-import { Page, PageButton } from "../Page";
+import Page from "../Page";
 import { createBinding, For, With } from "ags";
 import { addSliderMarksFromMinMax } from "../../../../modules/utils";
 import { userData } from "../../../../config";
 import Backlights from "../../../../modules/backlights";
 
 
-export const PageBacklight = <Page
+export const PageBacklight = () => <Page
     id={"backlight"}
     title={tr("control_center.pages.backlight.title")}
     description={tr("control_center.pages.backlight.description")}
-    actionOpen={() => {
+    onOpen={() => {
         const dataDefaultBacklight = userData.getProperty("control_center.default_backlight", "any");
         if(typeof dataDefaultBacklight === "string" && 
            Backlights.getDefault().default?.name !== dataDefaultBacklight) {
@@ -21,7 +21,11 @@ export const PageBacklight = <Page
             Backlights.getDefault().setDefault(bk);
         }
     }}
-    content={() => (
+    headerButtons={[{
+        iconName: "arrow-circular-top-right",
+        tooltipText: tr("control_center.pages.backlight.refresh"),
+        actionClicked: () => Backlights.getDefault().scan()
+    }]}>
         <With value={createBinding(Backlights.getDefault(), "backlights")}>
             {(bklights: Array<Backlights.Backlight>) => bklights.length > 0 &&
                 <Gtk.Box orientation={Gtk.Orientation.VERTICAL} spacing={4}>
@@ -31,7 +35,7 @@ export const PageBacklight = <Page
                         <Gtk.Label label={"Default"} />
                         <For each={createBinding(Backlights.getDefault(), "backlights")}>
                             {(bk: Backlights.Backlight) => 
-                                <PageButton class={createBinding(bk, "isDefault").as(is => is ? "highlight" : "")} 
+                                <Page.DecoratedButton class={createBinding(bk, "isDefault").as(is => is ? "highlight" : "")} 
                                   title={bk.name}
                                   icon={"video-display-symbolic"}
                                   actionClicked={() => {
@@ -74,10 +78,4 @@ export const PageBacklight = <Page
                 </Gtk.Box>
             }
         </With>
-    )}
-    headerButtons={[{
-        icon: "arrow-circular-top-right",
-        tooltipText: tr("control_center.pages.backlight.refresh"),
-        actionClicked: () => Backlights.getDefault().scan()
-    }]}
-/> as Page;
+    </Page>;

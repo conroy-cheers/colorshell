@@ -63,84 +63,98 @@
 .control-center-container .sliders button:hover {
   background: oklch(from var(--fg-primary) l c h / .2);
 }
-.control-center-container .sliders .page .content label.name {
-  font-size: 14px;
-  font-weight: 500;
-}
-.control-center-container .sliders .page .content trough {
-  margin-right: 10px;
-}
-.control-center-container .sliders .page .content label.sub-header {
-  margin-top: 6px;
-}
-.control-center-container #page {
+controlcenter .top-container page {
   transition: 120ms linear;
   background: var(--bg-secondary);
   padding: 14px;
   border-radius: 24px;
+  margin: 0 10px;
 }
-.control-center-container #page scale trough {
+controlcenter .top-container page scale trough {
     box-shadow: 0px 1px 5px 1px oklch(from var(--bg-primary) l c h / .5);
 }
-.control-center-container #page .header {
+controlcenter .top-container page .header {
   margin-bottom: 12px;
 }
-.control-center-container #page .header .top .title {
+controlcenter .top-container page .header .top .title {
   font-size: 20px;
   font-weight: 600;
 }
-.control-center-container #page .header .description {
+controlcenter .top-container page .header .description {
   font-size: 12px;
   font-weight: 500;
   color: var(--fg-disabled);
 }
-.control-center-container #page .sub-header {
+controlcenter .top-container page .sub-header {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 4px;
 }
-.control-center-container #page .page-button button, .control-center-container #page .extra-buttons button {
+controlcenter .top-container page .page-button button,
+controlcenter .top-container page .extra-buttons button {
   padding: 6px;
   border-radius: 12px;
 }
-.control-center-container #page .page-button button.selected, .control-center-container #page .extra-buttons button.selected {
+controlcenter .top-container page .page-button button.selected,
+controlcenter .top-container page .extra-buttons button.selected {
   background: var(--bg-tertiary);
 }
-.control-center-container #page .page-button button:hover, .control-center-container #page .extra-buttons button:hover {
+controlcenter .top-container page .page-button button:hover,
+controlcenter .top-container page .extra-buttons button:hover {
   background: oklch(from var(--fg-primary) l c h / .1);
 }
-.control-center-container #page .page-button button:active, .control-center-container #page .extra-buttons button:active {
+controlcenter .top-container page .page-button button:active,
+controlcenter .top-container page .extra-buttons button:active {
   border-radius: 10px;
 }
-.control-center-container #page .page-button label.title, .control-center-container #page .extra-buttons label.title {
+controlcenter .top-container page .page-button label.title,
+controlcenter .top-container page .extra-buttons label.title {
   font-size: 14px;
 }
-.control-center-container #page .page-button label.description, .control-center-container #page .extra-buttons label.description {
+controlcenter .top-container page .page-button label.description,
+controlcenter .top-container page .extra-buttons label.description {
   font-size: 10px;
   font-weight: 400;
   color: var(--fg-disabled);
 }
-.control-center-container #page .bottom-buttons button label.title {
+controlcenter .top-container page .bottom-buttons button label.title {
   font-size: 14px;
   font-weight: 500;
 }
-.control-center-container #page .bottom-buttons button label.description {
+controlcenter .top-container page .bottom-buttons button label.description {
   font-size: 10px;
   margin-top: -1px;
   font-weight: 400;
   color: var(--fg-disabled);
 }
-.control-center-container #page .extra-buttons {
+controlcenter .top-container page .extra-buttons {
   margin-left: 2px;
 }
-.control-center-container #page .extra-buttons button {
+controlcenter .top-container page .extra-buttons button {
   border-radius: 10px;
 }
-.control-center-container #page .extra-buttons button:active {
+controlcenter .top-container page .extra-buttons button:active {
   border-radius: 8px;
 }
-.control-center-container .audio-stream-controller .number {
+
+controlcenter .top-container page.sound .content label.name,
+controlcenter .top-container page.microphone .content label.name {
+  font-size: 14px;
+  font-weight: 500;
+}
+controlcenter .top-container page.sound .content trough,
+controlcenter .top-container page.microphone .content trough {
+  margin-right: 10px;
+}
+controlcenter .top-container page.sound .content label.sub-header,
+controlcenter .top-container page.microphone .content label.sub-header {
+  margin-top: 6px;
+}
+controlcenter .top-container page .audio-stream-controller .number {
     margin-top: 6px;
+}
+controlcenter .top-container pages.overlay-open .control-center-container {
+    filter: brightness(0.6);
 }
 
 .tiles-container .tile {
@@ -193,7 +207,7 @@
   border-radius: calc(var(--radius) - 2px);
 }
 
-.tile-pages #page {
+.tile-pages page {
   margin-top: 10px;
 }
 
