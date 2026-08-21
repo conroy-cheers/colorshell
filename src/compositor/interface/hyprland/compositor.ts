@@ -91,7 +91,7 @@ class Hyprland extends Compositor.Compositor {
             const i = this._clients.findIndex(cl => cl.address === addr);
             const client = this._clients.splice(i, 1)[0];
 
-            (client as Client).dispose();
+            (client as Client).run_dispose();
             this.emit("client-removed", client);
             this.notify("clients");
         });
@@ -110,7 +110,7 @@ class Hyprland extends Compositor.Compositor {
             const i = this._workspaces.findIndex(w => w.id === id);
             const workspace = this._workspaces.splice(i, 1)[0];
 
-            (workspace as Workspace).dispose();
+            (workspace as Workspace).run_dispose();
             this.emit("workspace-removed", workspace);
             this.notify("workspaces");
         });
@@ -143,7 +143,7 @@ class Hyprland extends Compositor.Compositor {
             const i = this._monitors.findIndex(m => m.id === id);
             const monitor = this._monitors.splice(i, 1)[0];
 
-            (monitor as Monitor).dispose();
+            (monitor as Monitor).run_dispose();
             this.notify("monitors");
             this.emit("monitor-removed", monitor);
         });
