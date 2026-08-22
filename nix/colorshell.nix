@@ -1,5 +1,5 @@
 {
-  inputs',
+  astal,
   lib,
   stdenv,
   stdenvNoCC,
@@ -150,7 +150,6 @@ buildNpmPackage (finalAttrs: {
     pnpm_10
     wrapGAppsHook4
     gobject-introspection
-    inputs'.ags.packages.default
     moreutils
     jq
   ];
@@ -161,18 +160,19 @@ buildNpmPackage (finalAttrs: {
     libadwaita
     libglycin-gtk4
     glycin-loaders
-    inputs'.astal.packages.astal4
-    inputs'.astal.packages.apps
-    inputs'.astal.packages.auth
-    inputs'.astal.packages.battery
-    inputs'.astal.packages.bluetooth
-    inputs'.astal.packages.hyprland
-    inputs'.astal.packages.io
-    inputs'.astal.packages.mpris
-    inputs'.astal.packages.network
-    inputs'.astal.packages.notifd
-    inputs'.astal.packages.tray
-    inputs'.astal.packages.wireplumber
+    networkmanager
+    astal.astal4
+    astal.apps
+    astal.auth
+    astal.battery
+    astal.bluetooth
+    astal.hyprland
+    astal.io
+    astal.mpris
+    astal.network
+    astal.notifd
+    astal.tray
+    astal.wireplumber
   ];
 
   buildPhase = ''
