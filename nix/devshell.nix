@@ -8,7 +8,7 @@
   ];
 
   devPackages = with pkgs; [
-    nodePackages.nodejs
+    nodejs
     pnpm_10
 
     # dev scripts
