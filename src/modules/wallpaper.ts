@@ -185,7 +185,7 @@ wallpaper {
     path = ${this.#wallpaper?.peek_path()}
     fit_mode = ${this.positioning}
 }`
-            ), null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null,
+            ), null, false, Gio.FileCreateFlags.NONE, null,
             (_, result) => {
                 try {
                     this.#hyprpaperFile.replace_contents_finish(result);
