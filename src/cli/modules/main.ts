@@ -6,7 +6,6 @@ import { Shell } from "../../app";
 import System from "system";
 import { execApp } from "../../modules/apps";
 import { generalConfig } from "../../config";
-import { runtimeDir } from "../../modules/utils";
 import Runner from "../../runner";
 
 
@@ -208,12 +207,10 @@ https://github.com/retrozinndev/colorshell
         },
         {
             name: "lock",
-            help: "Quick-lock your session using colorshell's themed hyprlock.",
+            help: "Quick-lock your session using hyprlock.",
             onCalled: (remote) => {
                 remote.println("Locking session...");
-                execApp(
-                    `hyprlock --config ${runtimeDir.peek_path()!}/config/hyprlock.conf`
-                );
+                execApp("hyprlock");
                 remote.exit(0);
             }
         },
