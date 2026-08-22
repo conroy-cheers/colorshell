@@ -20,9 +20,25 @@ import GLib from "gi://GLib?version=2.0";
 import Gio from "gi://Gio?version=2.0";
 
 Gio._promisify(Gio.DataInputStream.prototype, "read_upto_async", "read_upto_finish");
+Gio._promisify(Gio.File.prototype, "replace_contents_async", "replace_contents_finish");
 
 export const decoder = new TextDecoder("utf-8"),
     encoder = new TextEncoder();
+
+export async function writeTextFile(file: Gio.File, contents: string): Promise<void> {
+    const parent = file.get_parent();
+    if(parent && !parent.query_exists(null))
+        parent.make_directory_with_parents(null);
+
+    await file.replace_contents_async(
+        encoder.encode(contents),
+        null,
+        false,
+        Gio.FileCreateFlags.NONE,
+        null
+    );
+}
+
 export const time = createPoll(GLib.DateTime.new_now_local(), 500, () => 
     GLib.DateTime.new_now_local());
 

@@ -1,10 +1,11 @@
-import { monitorFile, readFile, writeFileAsync } from "ags/file";
+import { monitorFile, readFile } from "ags/file";
 import { Accessor } from "ags";
 import GObject, { getter, gtype, register, signal } from "ags/gobject";
 import Notifications from "./notifications";
 import Gio from "gi://Gio?version=2.0";
 import AstalNotifd from "gi://AstalNotifd";
 import GLib from "gi://GLib?version=2.0";
+import { writeTextFile } from "./utils";
 
 
 @register({ GTypeName: "Config" })
@@ -44,9 +45,6 @@ class Config<K extends string, V = any> extends GObject.Object {
         : filePath;
 
         if(!this.#file.query_exists(null)) {
-            this.#file.make_directory_with_parents(null);
-            this.#file.delete(null);
-
             this.writeFile().catch(e => Notifications.getDefault().sendNotification({
                 appName: "colorshell",
                 summary: "Write error",
@@ -83,8 +81,9 @@ class Config<K extends string, V = any> extends GObject.Object {
 
     private async writeFile(): Promise<void> {
         this.timeout = true;
-        await writeFileAsync(
-            this.#file.get_path()!, JSON.stringify(this.entries, undefined, 4)
+        await writeTextFile(
+            this.#file,
+            JSON.stringify(this.entries, undefined, 4)
         ).finally(() => this.timeout = false);
     }
 
