@@ -6,6 +6,8 @@ mkdir -p ./packages
 Send_log "Building colorshell-git (AUR)..."
 [ ! -d packages/aur-git ] && \
     git clone aur@aur.archlinux.org:colorshell-git.git packages/aur-git
+git -C packages/aur-git fetch
+git -C packages/aur-git pull --rebase
 if ! makepkg -D packages/aur-git -Cc; then
     Send_log err "Build colorshell-git(AUR) failed"
     exit 1
