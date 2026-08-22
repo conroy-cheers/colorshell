@@ -26,9 +26,30 @@ in
     settings = lib.mkOption {
       type = jsonFormat.type;
       default = { };
-      example = {
-        wallpaper.dirs = [ "/path/to/wallpapers" ];
-      };
+      example = lib.literalExpression ''
+        {
+          color = {
+            engine = "static";
+            static =
+              let
+                colors = config.lib.stylix.colors.withHashtag;
+                translucent = color: "oklch(from ''${color} l c h / .68)";
+              in
+              {
+                bg_primary = colors.base00;
+                bg_secondary = colors.base01;
+                bg_tertiary = colors.base02;
+                bg_translucent_primary = translucent colors.base00;
+                bg_translucent_secondary = translucent colors.base01;
+                bg_translucent_tertiary = translucent colors.base02;
+                fg_primary = colors.base05;
+                fg_disabled = colors.base04;
+              };
+          };
+
+          misc.match_window_border_color = false;
+        }
+      '';
       description = ''
         colorshell configuration written to
         `~/.config/colorshell/config.json`. Unspecified settings use
