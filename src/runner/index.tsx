@@ -215,7 +215,7 @@ class Runner extends PopupWindow {
     }
 
     
-    on_key_pressed(_: PopupWindow, key: number) {
+    on_key_pressed(key: number) {
         switch(key) {
             case Gdk.KEY_Up:
                 this.#list.selectPrevious();
