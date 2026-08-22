@@ -1,5 +1,5 @@
 {
-  inputs',
+  astal,
   lib,
   stdenv,
   stdenvNoCC,
@@ -9,11 +9,36 @@
   pnpm_10,
   buildNpmPackage,
   wrapGAppsHook4,
+  bash,
+  bluez,
+  brightnessctl,
+  cliphist,
+  coreutils,
   gobject-introspection,
   glib,
+  grim,
+  gtk4-layer-shell,
   gjs,
+  hyprland,
+  hyprlock,
+  hyprpaper,
+  hyprpicker,
+  hyprsunset,
   libadwaita,
+  libnotify,
+  networkmanager,
+  networkmanagerapplet,
+  polkit,
+  procps,
+  pywal,
   socat,
+  slurp,
+  systemd,
+  uwsm,
+  wf-recorder,
+  wl-clipboard,
+  xdg-utils,
+  zenity,
   libglycin-gtk4,
   glycin-loaders,
   jq,
@@ -23,14 +48,16 @@ let
   appid = "io.github.retrozinndev.Colorshell";
   pname = packageJSON.name;
   version = packageJSON.version;
-
   # Cleaned sources from this repository
   src = lib.fileset.toSource {
     root = ../.;
     fileset = lib.fileset.difference ../. (
       lib.fileset.unions [
+        (lib.fileset.maybeMissing ../build)
         ../flake.nix
         ../flake.lock
+        (lib.fileset.maybeMissing ../node_modules)
+        (lib.fileset.maybeMissing ../result)
         ./.
       ]
     );
@@ -73,10 +100,15 @@ let
 
     inherit src;
 
-    # Replace reference to ags FHS install path
     postPatch = ''
-      substituteInPlace package.json pnpm-lock.yaml \
-        --replace-fail "/usr/share/ags/js" "${inputs'.ags.packages.ags.jsPackage}"
+      substituteInPlace scripts/build.sh \
+        --replace-fail '#!/usr/bin/env bash' '#!${lib.getExe bash}' \
+        --replace-fail '#!/usr/bin/env -S gjs -m' '#!${lib.getExe gjs} -m' \
+        --replace-fail \
+          'export LD_PRELOAD=\"/usr/lib/libgtk4-layer-shell.so\"' \
+          'export LD_PRELOAD=\"${gtk4-layer-shell}/lib/libgtk4-layer-shell.so\"'
+      substituteInPlace src/modules/wallpaper.ts \
+        --replace-fail '/usr/share/hypr/wall2.png' '${hyprland}/share/hypr/wall2.png'
     '';
 
     installPhase = ''
@@ -102,13 +134,15 @@ buildNpmPackage (finalAttrs: {
       ;
 
     nativeBuildInputs = [ pnpm_10 ];
+    pnpm = pnpm_10;
 
-    fetcherVersion = 2;
-    hash = "sha256-Mk2TMmotSlDiOPvs3LLZeAzUo5eGMQFTB49rueBdmho=";
+    fetcherVersion = 3;
+    hash = "sha256-o2ZYl2FTQCnq9haPFMSx9VXIjA8E0Sc45CUfIIw3GwM=";
 
-    # fetcher version 2 fails if there are no *-exec files in the output
+    # The pnpm store has no executable entries, but the fetcher still expects at
+    # least one *-exec file while normalizing permissions.
     preFixup = ''
-      touch $out/.dummy-exec
+      touch "$storePath/.dummy-exec"
     '';
   };
 
@@ -116,7 +150,6 @@ buildNpmPackage (finalAttrs: {
     pnpm_10
     wrapGAppsHook4
     gobject-introspection
-    inputs'.ags.packages.default
     moreutils
     jq
   ];
@@ -127,18 +160,19 @@ buildNpmPackage (finalAttrs: {
     libadwaita
     libglycin-gtk4
     glycin-loaders
-    inputs'.astal.packages.astal4
-    inputs'.astal.packages.apps
-    inputs'.astal.packages.auth
-    inputs'.astal.packages.battery
-    inputs'.astal.packages.bluetooth
-    inputs'.astal.packages.hyprland
-    inputs'.astal.packages.io
-    inputs'.astal.packages.mpris
-    inputs'.astal.packages.network
-    inputs'.astal.packages.notifd
-    inputs'.astal.packages.tray
-    inputs'.astal.packages.wireplumber
+    networkmanager
+    astal.astal4
+    astal.apps
+    astal.auth
+    astal.battery
+    astal.bluetooth
+    astal.hyprland
+    astal.io
+    astal.mpris
+    astal.network
+    astal.notifd
+    astal.tray
+    astal.wireplumber
   ];
 
   buildPhase = ''
@@ -168,12 +202,39 @@ buildNpmPackage (finalAttrs: {
       --prefix PATH : ${
         lib.makeBinPath [
           # runtime executables
+          bash
+          bluez
+          brightnessctl
+          cliphist
+          coreutils
           glib
+          grim
+          gtk4-layer-shell
+          hyprland
+          hyprlock
+          hyprpaper
+          hyprpicker
+          hyprsunset
+          libnotify
+          networkmanager
+          networkmanagerapplet
+          polkit
+          procps
+          pywal
           socat
+          slurp
+          systemd
+          uwsm
+          wf-recorder
+          wl-clipboard
+          xdg-utils
+          zenity
         ]
       }
     )
   '';
+
+  meta.mainProgram = "colorshell";
 
   passthru = {
     resources = colorshellResources;

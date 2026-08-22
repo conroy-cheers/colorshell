@@ -7,7 +7,6 @@ import { createPoll } from "ags/time";
 import Screenshot from "../../../modules/screenshot";
 import GLib from "gi://GLib?version=2.0";
 import Gio from "gi://Gio?version=2.0";
-import { runtimeDir } from "../../../modules/utils";
 
 
 const userFace: Gio.File = Gio.File.new_for_path(`${GLib.get_home_dir()}/.face`);
@@ -17,7 +16,7 @@ function LockButton(): Gtk.Button {
     return <Gtk.Button iconName={"system-lock-screen-symbolic"} 
       onClicked={() => {
           Windows.getDefault().close("control-center");
-          execApp(`hyprlock --config ${runtimeDir.peek_path()!}/config/hyprlock.conf`);
+          execApp("hyprlock");
       }} 
     /> as Gtk.Button;
 }
