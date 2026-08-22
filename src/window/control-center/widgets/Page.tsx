@@ -93,16 +93,19 @@ class Page extends Gtk.Box {
                         </Gtk.Box>
                     </Gtk.Box>
                 </Gtk.Box>
-                <This this={this.#container} class="content" 
-                  hexpand={false} orientation={Gtk.Orientation.VERTICAL}
-                  {...props} 
-                />
-                <Separator alpha={.2} orientation={Gtk.Orientation.VERTICAL}
-                  visible={variableToBoolean(createBinding(this, "bottomButtons"))} 
-                />
+                <Gtk.ScrolledWindow hscrollbarPolicy={Gtk.PolicyType.NEVER} propagateNaturalHeight
+                  vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}>
+
+                    <This this={this.#container} class="content" 
+                      hexpand={false} orientation={Gtk.Orientation.VERTICAL}
+                      {...props} 
+                    />
+                </Gtk.ScrolledWindow>
                 <Gtk.Box class={"bottom-buttons"} orientation={Gtk.Orientation.VERTICAL}
-                  visible={variableToBoolean(createBinding(this, "bottomButtons"))} spacing={2}>
-                
+                  visible={variableToBoolean(createBinding(this, "bottomButtons"))}
+                  spacing={2} valign={Gtk.Align.END} vexpand>
+
+                    <Separator alpha={.2} orientation={Gtk.Orientation.VERTICAL} />
                     <For each={createBinding(this, "bottomButtons")}>
                         {(button: Page.Button) => 
                             <Page.DecoratedButton actionClicked={() => button.actionClicked?.()} 
