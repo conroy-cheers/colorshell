@@ -1,5 +1,6 @@
 import { Astal, Gdk, Gtk } from "ags/gtk4";
 import { execApp, getApps } from "../../modules/apps";
+import { searchApps } from "../../modules/app-search";
 import { PopupWindow } from "../../widget/PopupWindow";
 
 import AstalApps from "gi://AstalApps?version=0.1";
@@ -27,8 +28,9 @@ export const AppsWindow = Windows.forFocusedMonitor(() => {
 
     const entry = <Gtk.SearchEntry hexpand={false} halign={Gtk.Align.CENTER}
       onSearchChanged={(self) => {
-          setResults(getApps().fuzzy_query(self.text.trim()));
+          setResults(searchApps(self.text));
       }} onStopSearch={(self) => (self.get_root() as Astal.Window)?.close()} 
+
     /> as Gtk.SearchEntry;
 
     return <PopupWindow namespace="apps-window" layer={Astal.Layer.OVERLAY}
