@@ -35,7 +35,7 @@ export const AppsWindow = Windows.forFocusedMonitor(() => {
 
     return <PopupWindow namespace="apps-window" layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.IGNORE} marginTop={64} class={"apps-window"}
-      backgroundCss="background: rgba(0, 0, 0, .2);" hexpand
+      css="background: rgba(0, 0, 0, .2);" hexpand
       onKeyPressed={(_, key) => {
           for(const ignoredKey of ignoredKeys) 
               if(key === ignoredKey) return

@@ -1,8 +1,7 @@
 import { Astal, Gdk, Gtk } from "ags/gtk4";
-import { BackgroundWindow } from "./BackgroundWindow";
-import { createBinding } from "ags";
 import { omitObjectKeys } from "../modules/utils";
-import GObject, { gtype, property, register, signal } from "ags/gobject";
+import { property, register, signal } from "ags/gobject";
+import GObject from "gi://GObject?version=2.0";
 
 
 @register({ GTypeName: "ClshPopupWindow" })
@@ -10,7 +9,6 @@ export class PopupWindow extends Astal.Window {
     declare $signals: PopupWindow.SignalSignatures;
 
     #conns: Map<GObject.Object, number> = new Map();
-    #bg: Astal.Window;
 
     @signal()
     closed() {}
@@ -40,9 +38,6 @@ export class PopupWindow extends Astal.Window {
     @property(Boolean)
     closeOnEscape: boolean = true;
 
-    @property(gtype<string|null>(String))
-    backgroundCss: string|null = null;
-
     /** whether to continue propagating the event to children after handling in ::key-pressed.
       * @default false */
     @property(Boolean)
@@ -58,7 +53,6 @@ export class PopupWindow extends Astal.Window {
             exclusivity: Astal.Exclusivity.NORMAL,
             ...omitObjectKeys(props, [
                 "propagateKeyEvent",
-                "backgroundCss",
                 "closeOnClickOutside"
             ]),
             anchor: Astal.WindowAnchor.TOP | Astal.WindowAnchor.BOTTOM 
@@ -68,24 +62,11 @@ export class PopupWindow extends Astal.Window {
         if(props.propagateKeyEvent !== undefined)
             this.propagateKeyEvent = props.propagateKeyEvent;
 
-        if(props.backgroundCss !== undefined)
-            this.backgroundCss = props.backgroundCss;
-
         if(props.closeOnEscape != null)
             this.closeOnEscape = props.closeOnEscape;
 
         if(props.closeOnClickOutside !== undefined)
             this.closeOnClickOutside = props.closeOnClickOutside;
-
-        this.#bg = BackgroundWindow({
-            css: createBinding(this, "backgroundCss")(css => css ?? ""),
-            monitor: createBinding(this, "monitor"),
-            layer: createBinding(this, "layer"),
-            keymode: Astal.Keymode.NONE,
-            attach: this,
-            exclusivity: Astal.Exclusivity.IGNORE
-        });
-        this.#bg.visible = false;
 
         const gestureClick = Gtk.GestureClick.new();
         const keyController = Gtk.EventControllerKey.new();
@@ -117,15 +98,6 @@ export class PopupWindow extends Astal.Window {
         this.add_controller(keyController);
     }
 
-    vfunc_notify(pspec: GObject.ParamSpec): void {
-        switch(pspec.name) {
-            case "visible": {
-                this.#bg.visible = this.visible;
-                break;
-            };
-        }
-    }
-
     on_close_request(): void {
         this.#conns.forEach((id, obj) => obj.disconnect(id));
     }
@@ -146,7 +118,6 @@ export namespace PopupWindow {
         | "margin_left"
         | "margin_right"
     > {
-        backgroundCss: string;
         propagateKeyEvent: boolean;
         closeOnClickOutside: boolean;
         closeOnEscape: boolean;
