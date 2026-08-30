@@ -1,6 +1,9 @@
+:root {
+  --cc-radius: 32px;
+}
 .control-center-container {
   background: var(--bg-translucent-primary);
-  border-radius: 28px;
+  border-radius: var(--cc-radius);
   padding: 20px;
 }
 .control-center-container > * {
@@ -64,11 +67,12 @@
   background: oklch(from var(--fg-primary) l c h / .2);
 }
 controlcenter .top-container page {
-  transition: 120ms linear;
+  --margin-around: 16px;
+  transition: none;
   background: var(--bg-secondary);
   padding: 14px;
-  border-radius: 24px;
-  margin: 0 10px;
+  border-radius: calc(var(--cc-radius) - var(--margin-around));
+  margin: var(--margin-around);
 }
 controlcenter .top-container page scale trough {
     box-shadow: 0px 1px 5px 1px oklch(from var(--bg-primary) l c h / .5);
