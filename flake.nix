@@ -39,10 +39,15 @@
             colorshell = pkgs.callPackage ./nix/colorshell.nix { };
           in
           {
-            checks.home-manager-module = import ./nix/tests/home-manager.nix {
-              inherit pkgs;
-              homeManager = inputs.home-manager;
-              module = import ./nix/home-manager.nix { inherit withSystem; };
+            checks = {
+              home-manager-module = import ./nix/tests/home-manager.nix {
+                inherit pkgs;
+                homeManager = inputs.home-manager;
+                module = import ./nix/home-manager.nix { inherit withSystem; };
+              };
+              runtime-package = import ./nix/tests/runtime-package.nix {
+                inherit colorshell pkgs;
+              };
             };
 
             packages = {

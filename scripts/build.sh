@@ -95,16 +95,11 @@ export XDG_DATA_HOME=\${XDG_DATA_HOME:-\"\$HOME/.local/share\"}
 export XDG_CONFIG_HOME=\${XDG_CONFIG_HOME:-\"\$HOME/.config\"}
 export XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-\"/run/user/\`id -u\`\"}
 
-runtime_dir=\$XDG_RUNTIME_DIR/$appname
-file=\"\$XDG_RUNTIME_DIR/$appname/$appname\"
+script_dir=\$(CDPATH= cd -- \"\$(dirname -- \"\$0\")\" && pwd)
+file=\${COLORSHELL_EXECUTABLE:-\"\$script_dir/$appname.js\"}
 `[[ $socket_support ]] && cat ./scripts/socket.sh`
 
-mkdir -p \"\$XDG_RUNTIME_DIR/$appname\"
-echo -n '`cat $output/$appname.js | base64`' | base64 --decode > \"\$file\"
-chmod +x "\$file"
-
 `[[ ! $is_devel ]] && echo -n "export LD_PRELOAD=\"/usr/lib/libgtk4-layer-shell.so\""`
-\$file \$@
-`[[ ! $is_devel ]] && echo -n "export LD_PRELOAD="`
+exec gjs -m \"\$file\" \"\$@\"
 " > $output/$appname
 chmod +x $output/$appname

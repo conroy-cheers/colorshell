@@ -188,10 +188,13 @@ buildNpmPackage (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-      mkdir -p $out/bin
-      mkdir -p $out/share/${pname}
-      cp -rp build/${packageJSON.name} $out/bin/
-      cp ${colorshellResources} $out/share/${pname}/resources.gresource
+      install -Dm755 build/${packageJSON.name} $out/bin/${packageJSON.name}
+      install -Dm644 \
+        build/${packageJSON.name}.js \
+        $out/libexec/${pname}/${pname}.js
+      install -Dm644 \
+        ${colorshellResources} \
+        $out/share/${pname}/resources.gresource
 
     runHook postInstall
   '';
@@ -199,6 +202,7 @@ buildNpmPackage (finalAttrs: {
   preFixup = ''
     gappsWrapperArgs+=(
       --set COLORSHELL_GRESOURCE "$out/share/${pname}/resources.gresource"
+      --set COLORSHELL_EXECUTABLE "$out/libexec/${pname}/${pname}.js"
       --prefix PATH : ${
         lib.makeBinPath [
           # runtime executables
@@ -208,6 +212,7 @@ buildNpmPackage (finalAttrs: {
           cliphist
           coreutils
           glib
+          gjs
           grim
           gtk4-layer-shell
           hyprland
