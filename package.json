@@ -14,7 +14,8 @@
         "check:nix": "sh ./scripts/nixdeps.sh"
     },
     "devDependencies": {
-        "esbuild": "^0.28.2"
+        "esbuild": "^0.28.2",
+        "typescript": "^7.0.2"
     },
     "dependencies": {
         "ags": "github:Aylur/ags#v3.1.2",
