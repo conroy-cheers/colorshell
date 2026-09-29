@@ -21,7 +21,10 @@ let
 
   colorshellDeps = pkgs.stdenvNoCC.mkDerivation {
     name = "colorshell-node-modules";
-    nativeBuildInputs = [ pkgs.bun ];
+    nativeBuildInputs = [
+      pkgs.bun
+      colorshell.bunNode
+    ];
     dontUnpack = true;
     installPhase = ''
       project="$TMPDIR/project"

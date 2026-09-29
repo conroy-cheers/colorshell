@@ -4,6 +4,7 @@
   fetchBunDeps,
   fetchFromGitHub,
   lib,
+  runCommand,
   stdenv,
   stdenvNoCC,
   moreutils,
@@ -47,6 +48,13 @@ let
   appid = "io.github.retrozinndev.Colorshell";
   pname = packageJSON.name;
   version = packageJSON.version;
+
+  # Let Node-shebang build tools run through Bun, including direct CLI calls.
+  bunNode = runCommand "bun-node-${bun.version}" { } ''
+    mkdir -p "$out/bin"
+    ln -s ${lib.getExe bun} "$out/bin/node"
+  '';
+
   # Cleaned sources from this repository
   src = lib.fileset.toSource {
     root = ../.;
@@ -144,6 +152,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     bun
+    bunNode
     wrapGAppsHook4
     gobject-introspection
     moreutils
@@ -254,7 +263,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta.mainProgram = "colorshell";
 
   passthru = {
-    inherit bunDeps;
+    inherit bunDeps bunNode;
     resources = colorshellResources;
   };
 })
